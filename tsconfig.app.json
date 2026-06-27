@@ -21,8 +21,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path aliases */
-    "baseUrl": ".",
+    /* Path aliases - using subpath imports instead of deprecated baseUrl */
     "paths": {
       "@/*": ["./src/*"]
     }
