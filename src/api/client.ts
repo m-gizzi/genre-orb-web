@@ -7,6 +7,7 @@ export const api = ky.create({
   credentials: "include",
   headers: {
     "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 
