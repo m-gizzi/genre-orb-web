@@ -3,12 +3,12 @@ import ky from "ky";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export const api = ky.create({
-  prefixUrl: API_URL,
+  prefix: API_URL,
   credentials: "include",
   headers: {
     "Content-Type": "application/json",
   },
-} as Parameters<typeof ky.create>[0]);
+});
 
 export interface User {
   id: number;
