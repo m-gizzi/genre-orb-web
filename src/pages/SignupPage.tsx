@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SocialLogins } from "@/components/auth/SocialLogins";
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -88,6 +89,8 @@ export function SignupPage() {
             {isLoading ? "Creating account..." : "Sign Up"}
           </Button>
         </form>
+
+        <SocialLogins />
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
