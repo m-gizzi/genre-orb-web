@@ -12,9 +12,16 @@ export function SpotifyCallbackPage() {
     const error = searchParams.get("error");
 
     if (success) {
-      refreshUser().then(() => {
-        navigate("/", { replace: true, state: { spotifyConnected: true } });
-      });
+      refreshUser()
+        .then(() => {
+          navigate("/", { replace: true, state: { spotifyConnected: true } });
+        })
+        .catch(() => {
+          navigate("/", {
+            replace: true,
+            state: { spotifyError: "Failed to refresh user session" },
+          });
+        });
     } else {
       navigate("/", {
         replace: true,

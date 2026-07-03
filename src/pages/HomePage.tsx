@@ -9,6 +9,7 @@ export function HomePage() {
   const { user, logout, isAuthenticated, refreshUser } = useAuth();
   const location = useLocation();
   const [message, setMessage] = useState<string | null>(null);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   useEffect(() => {
     const state = location.state as {
@@ -23,12 +24,26 @@ export function HomePage() {
     window.history.replaceState({}, document.title);
   }, [location.state]);
 
+  useEffect(() => {
+    if (!message) return;
+
+    const timer = setTimeout(() => {
+      setMessage(null);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [message]);
+
   const handleDisconnectSpotify = async () => {
+    setIsDisconnecting(true);
     try {
       await spotifyApi.disconnect();
       await refreshUser();
     } catch (error) {
       console.error("Failed to disconnect Spotify:", error);
+      setMessage("Error: Failed to disconnect Spotify");
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
@@ -59,8 +74,9 @@ export function HomePage() {
                 variant="outline"
                 size="sm"
                 className="mt-2"
+                disabled={isDisconnecting}
               >
-                Disconnect Spotify
+                {isDisconnecting ? "Disconnecting..." : "Disconnect Spotify"}
               </Button>
             </div>
           ) : (
