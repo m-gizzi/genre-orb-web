@@ -1,6 +1,6 @@
 import ky from "ky";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+export const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:3000";
 
 export const api = ky.create({
   prefix: API_URL,
@@ -11,9 +11,19 @@ export const api = ky.create({
   },
 });
 
+export interface SpotifyProfile {
+  display_name: string;
+  email: string;
+  images: Array<{ url: string }>;
+  country: string;
+  product: string;
+}
+
 export interface User {
   id: number;
   email: string;
+  spotify_connected: boolean;
+  spotify_profile?: SpotifyProfile;
 }
 
 export interface AuthResponse {
@@ -40,4 +50,25 @@ export const authApi = {
   logout: () => api.delete("auth/logout").json<{ message: string }>(),
 
   me: () => api.get("auth/me").json<{ user: User }>(),
+};
+
+export const spotifyApi = {
+  disconnect: () => api.delete("auth/spotify").json<{ message: string }>(),
+
+  connect: (callbackPath: string = "/spotify/callback") => {
+    const callbackUrl = `${window.location.origin}${callbackPath}`;
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = `${API_URL}/auth/spotify`;
+
+    const originInput = document.createElement("input");
+    originInput.type = "hidden";
+    originInput.name = "origin";
+    originInput.value = callbackUrl;
+    form.appendChild(originInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  },
 };
