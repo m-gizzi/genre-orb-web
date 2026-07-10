@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Playlist } from "@/api/client";
 import { playlistsApi } from "@/api/client";
+import { queryKeys } from "@/lib/queryKeys";
 import { Switch } from "@/components/ui/switch";
 
 interface PlaylistListProps {
@@ -13,10 +14,21 @@ export function PlaylistList({ playlists }: PlaylistListProps) {
   const updateMutation = useMutation({
     mutationFn: ({ id, syncEnabled }: { id: number; syncEnabled: boolean }) =>
       playlistsApi.update(id, { sync_enabled: syncEnabled }),
-    onSuccess: (updatedPlaylist) => {
-      queryClient.setQueryData<Playlist[]>(["playlists"], (old) =>
-        old?.map((p) => (p.id === updatedPlaylist.id ? updatedPlaylist : p))
+    onMutate: async ({ id, syncEnabled }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.playlists });
+      const previous = queryClient.getQueryData<Playlist[]>(queryKeys.playlists);
+      queryClient.setQueryData<Playlist[]>(queryKeys.playlists, (old) =>
+        old?.map((p) => (p.id === id ? { ...p, sync_enabled: syncEnabled } : p))
       );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.playlists, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.playlists });
     },
   });
 

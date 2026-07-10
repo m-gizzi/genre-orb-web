@@ -1,6 +1,24 @@
-import ky from "ky";
+import ky, { HTTPError } from "ky";
+import { API_URL, SPOTIFY_CALLBACK_PATH } from "@/lib/config";
 
-export const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:3000";
+export { API_URL };
+
+export async function extractApiError(
+  error: unknown,
+  fallback = "Something went wrong"
+): Promise<string> {
+  if (error instanceof HTTPError) {
+    try {
+      const body = (await error.response.clone().json()) as { error?: string };
+      if (body?.error) return body.error;
+    } catch {
+      // Response body wasn't JSON; fall back below.
+    }
+    return error.response.statusText || fallback;
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
 
 export const api = ky.create({
   prefix: API_URL,
@@ -52,23 +70,36 @@ export interface Playlist {
   available_on_spotify: boolean;
 }
 
+export type SyncSessionStatus = "pending" | "running" | "completed" | "failed";
+
+export type SyncPlaylistStatus =
+  | "pending"
+  | "fetching_pages"
+  | "completed"
+  | "failed"
+  | "skipped";
+
+export interface SyncProgress {
+  total: number;
+  completed: number;
+  percent: number;
+}
+
+export interface LibrarySyncProgress extends SyncProgress {
+  skipped: number;
+}
+
 export interface SyncSessionPlaylist {
   playlist_id: number;
   playlist_name: string;
-  status: "pending" | "fetching_pages" | "completed" | "failed";
+  status: SyncPlaylistStatus;
   page_progress: { total: number; completed: number };
 }
 
 export interface SyncSession {
   id: number;
-  status:
-    | "pending"
-    | "running"
-    | "paused"
-    | "completed"
-    | "failed"
-    | "cancelled";
-  progress: { total: number; completed: number; percent: number };
+  status: SyncSessionStatus;
+  progress: LibrarySyncProgress;
   started_at: string | null;
   completed_at: string | null;
   playlists: SyncSessionPlaylist[];
@@ -84,8 +115,8 @@ export interface LibraryStatus {
 
 export interface ArtistMetadataSession {
   id: number;
-  status: "pending" | "running" | "completed" | "failed";
-  progress: { total: number; completed: number; percent: number };
+  status: SyncSessionStatus;
+  progress: SyncProgress;
   started_at: string | null;
   completed_at: string | null;
 }
@@ -114,7 +145,7 @@ export const authApi = {
 export const spotifyApi = {
   disconnect: () => api.delete("auth/spotify").json<{ message: string }>(),
 
-  connect: (callbackPath: string = "/spotify/callback") => {
+  connect: (callbackPath: string = SPOTIFY_CALLBACK_PATH) => {
     const callbackUrl = `${window.location.origin}${callbackPath}`;
 
     const form = document.createElement("form");
@@ -138,7 +169,10 @@ export const libraryApi = {
   fetchPlaylists: () =>
     api.post("api/v1/library/fetch_playlists").json<{ status: string }>(),
 
-  sync: () => api.post("api/v1/library/sync").json<{ status: string }>(),
+  sync: () =>
+    api
+      .post("api/v1/library/sync")
+      .json<{ status: string; session: SyncSession }>(),
 };
 
 export const playlistsApi = {
@@ -159,5 +193,5 @@ export const artistsApi = {
       .post("api/v1/artists/sync", {
         json: options?.syncAll ? { sync_all: true } : undefined,
       })
-      .json<{ status: string }>(),
+      .json<{ status: string; session: ArtistMetadataSession }>(),
 };
