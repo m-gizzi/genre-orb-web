@@ -7,7 +7,9 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ percent, className, barClassName }: ProgressBarProps) {
-  const clamped = Math.max(0, Math.min(100, percent));
+  const clamped = Number.isFinite(percent)
+    ? Math.max(0, Math.min(100, percent))
+    : 0;
 
   return (
     <div className={cn("h-2 overflow-hidden rounded-full bg-muted", className)}>

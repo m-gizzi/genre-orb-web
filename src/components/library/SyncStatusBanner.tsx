@@ -3,6 +3,7 @@ import type {
   SyncSessionPlaylist,
   SyncSessionStatus,
 } from "@/api/client";
+import { assertNever } from "@/lib/utils";
 import { ProgressBar } from "./ProgressBar";
 import { StatusBanner } from "./StatusBanner";
 import { isSyncActive, syncStatusColor } from "./statusStyles";
@@ -26,6 +27,8 @@ function playlistStatusText(playlist: SyncSessionPlaylist): string {
       return "Failed";
     case "skipped":
       return "Skipped";
+    default:
+      return assertNever(playlist.status);
   }
 }
 

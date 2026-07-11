@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { spotifyApi } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
@@ -17,9 +17,18 @@ export function HomePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { message, show, showSuccess, showError } = useTransientMessage();
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const spotifyReady = isAuthenticated && !!user?.spotify_connected;
+
+  const disconnectMutation = useMutation({
+    mutationFn: () => spotifyApi.disconnect(),
+    onSuccess: async () => {
+      await refreshUser();
+      queryClient.removeQueries({ queryKey: queryKeys.playlists });
+      queryClient.removeQueries({ queryKey: queryKeys.libraryStatus });
+    },
+    onError: () => showError("Failed to disconnect Spotify"),
+  });
 
   useEffect(() => {
     const state = location.state as {
@@ -35,20 +44,6 @@ export function HomePage() {
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.state, location.pathname, navigate, showSuccess, showError]);
-
-  const handleDisconnectSpotify = async () => {
-    setIsDisconnecting(true);
-    try {
-      await spotifyApi.disconnect();
-      await refreshUser();
-      queryClient.removeQueries({ queryKey: queryKeys.playlists });
-      queryClient.removeQueries({ queryKey: queryKeys.libraryStatus });
-    } catch {
-      showError("Failed to disconnect Spotify");
-    } finally {
-      setIsDisconnecting(false);
-    }
-  };
 
   return (
     <div className="mx-auto min-h-screen max-w-2xl p-8">
@@ -80,8 +75,8 @@ export function HomePage() {
             <>
               <SpotifyConnectionCard
                 profile={user?.spotify_profile}
-                onDisconnect={handleDisconnectSpotify}
-                isDisconnecting={isDisconnecting}
+                onDisconnect={() => disconnectMutation.mutate()}
+                isDisconnecting={disconnectMutation.isPending}
               />
               <LibrarySection enabled={spotifyReady} onMessage={show} />
               <ArtistMetadataPanel enabled={spotifyReady} onMessage={show} />
