@@ -48,7 +48,8 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
     if (awaitingStart && hasActiveSync) stopAwaiting();
   }, [awaitingStart, hasActiveSync, stopAwaiting]);
 
-  const applyStartedSession = (session: ArtistMetadataSession) => {
+  const applyStartedSession = async (session: ArtistMetadataSession) => {
+    await queryClient.cancelQueries({ queryKey: queryKeys.artistSyncStatus });
     queryClient.setQueryData<ArtistSyncStatus>(
       queryKeys.artistSyncStatus,
       (old) => ({
@@ -66,8 +67,8 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
 
   const syncMutation = useMutation({
     mutationFn: () => artistsApi.sync(),
-    onSuccess: ({ session }) => {
-      applyStartedSession(session);
+    onSuccess: async ({ session }) => {
+      await applyStartedSession(session);
       onMessage?.({ type: "success", text: "Artist metadata sync started!" });
     },
     onError: reportError,
@@ -75,8 +76,8 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
 
   const resyncAllMutation = useMutation({
     mutationFn: () => artistsApi.sync({ syncAll: true }),
-    onSuccess: ({ session }) => {
-      applyStartedSession(session);
+    onSuccess: async ({ session }) => {
+      await applyStartedSession(session);
       onMessage?.({ type: "success", text: "Resyncing all artist metadata..." });
     },
     onError: reportError,
@@ -89,6 +90,7 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
     status: statusQuery.data,
     isLoading: statusQuery.isLoading,
     isError: statusQuery.isError,
+    refetch: statusQuery.refetch,
     hasActiveSync,
     currentSession: statusQuery.data?.current_session ?? null,
     artistsTotal,

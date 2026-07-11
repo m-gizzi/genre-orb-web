@@ -26,12 +26,14 @@ const inactiveStatus: LibraryStatus = {
   rate_limited: false,
   rate_limit_resume_at: null,
   playlists_metadata_fetched_at: null,
+  playlists_metadata_error: null,
 };
 
 const runningSession: SyncSession = {
   id: 1,
   status: "running",
-  progress: { total: 2, completed: 0, skipped: 0, percent: 0 },
+  progress: { total: 2, completed: 0, skipped: 0, failed: 0, percent: 0 },
+  error_message: null,
   started_at: null,
   completed_at: null,
   playlists: [],
@@ -73,6 +75,40 @@ describe("useLibrarySync", () => {
       expect(result.current.currentSession).toEqual(runningSession);
       expect(result.current.hasActiveSync).toBe(true);
     });
+  });
+
+  it("surfaces a metadata fetch failure instead of timing out silently", async () => {
+    mockedLibraryApi.getStatus.mockResolvedValue(inactiveStatus);
+    mockedLibraryApi.fetchPlaylists.mockResolvedValue({ status: "queued" });
+    const onMessage = vi.fn();
+
+    const { queryClient, wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useLibrarySync({ enabled: true, onMessage }),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.status).toBeDefined());
+
+    act(() => {
+      result.current.fetchPlaylists();
+    });
+    await waitFor(() => expect(result.current.isFetchingPlaylists).toBe(true));
+
+    act(() => {
+      queryClient.setQueryData<LibraryStatus>(queryKeys.libraryStatus, {
+        ...inactiveStatus,
+        playlists_metadata_error: "Spotify said no",
+      });
+    });
+
+    await waitFor(() =>
+      expect(onMessage).toHaveBeenCalledWith({
+        type: "error",
+        text: "Spotify said no",
+      })
+    );
+    expect(result.current.isFetchingPlaylists).toBe(false);
   });
 
   it("refreshes playlists and artist counts when a sync finishes", async () => {

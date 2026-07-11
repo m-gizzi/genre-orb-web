@@ -25,6 +25,7 @@ const EMPTY_STATUS: LibraryStatus = {
   rate_limited: false,
   rate_limit_resume_at: null,
   playlists_metadata_fetched_at: null,
+  playlists_metadata_error: null,
 };
 
 export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
@@ -35,6 +36,7 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
   const [fetchingMetadata, startFetchingMetadata, stopFetchingMetadata] =
     useTemporaryFlag(METADATA_FETCH_TIMEOUT_MS);
   const metadataBaselineRef = useRef<string | null>(null);
+  const metadataErrorBaselineRef = useRef<string | null>(null);
 
   const statusQuery = useQuery({
     queryKey: queryKeys.libraryStatus,
@@ -49,6 +51,7 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
 
   const hasActiveSync = statusQuery.data?.has_active_sync ?? false;
   const metadataFetchedAt = statusQuery.data?.playlists_metadata_fetched_at ?? null;
+  const metadataError = statusQuery.data?.playlists_metadata_error ?? null;
 
   useEffect(() => {
     if (awaitingStart && hasActiveSync) stopAwaiting();
@@ -69,10 +72,16 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
       stopFetchingMetadata();
       queryClient.invalidateQueries({ queryKey: queryKeys.playlists });
       onMessage?.({ type: "success", text: "Playlists loaded!" });
+      return;
+    }
+    if (metadataError != null && metadataError !== metadataErrorBaselineRef.current) {
+      stopFetchingMetadata();
+      onMessage?.({ type: "error", text: metadataError });
     }
   }, [
     fetchingMetadata,
     metadataFetchedAt,
+    metadataError,
     queryClient,
     stopFetchingMetadata,
     onMessage,
@@ -80,7 +89,8 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
 
   const syncMutation = useMutation({
     mutationFn: libraryApi.sync,
-    onSuccess: ({ session }) => {
+    onSuccess: async ({ session }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.libraryStatus });
       queryClient.setQueryData<LibraryStatus>(queryKeys.libraryStatus, (old) => ({
         ...(old ?? EMPTY_STATUS),
         has_active_sync: true,
@@ -98,6 +108,7 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
     mutationFn: libraryApi.fetchPlaylists,
     onSuccess: () => {
       metadataBaselineRef.current = metadataFetchedAt;
+      metadataErrorBaselineRef.current = metadataError;
       startFetchingMetadata();
       onMessage?.({ type: "success", text: "Fetching playlists from Spotify..." });
     },

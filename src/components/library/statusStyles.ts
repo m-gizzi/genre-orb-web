@@ -4,6 +4,7 @@ export const syncStatusColor: Record<SyncSessionStatus, string> = {
   pending: "bg-yellow-100 border-yellow-300 text-yellow-800",
   running: "bg-blue-100 border-blue-300 text-blue-800",
   completed: "bg-green-100 border-green-300 text-green-800",
+  completed_with_errors: "bg-amber-100 border-amber-300 text-amber-800",
   failed: "bg-red-100 border-red-300 text-red-800",
 };
 

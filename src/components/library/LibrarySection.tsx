@@ -14,6 +14,7 @@ export function LibrarySection({ enabled, onMessage }: LibrarySectionProps) {
   const {
     currentSession,
     hasActiveSync,
+    isError: statusError,
     sync,
     isSyncing,
     fetchPlaylists,
@@ -27,6 +28,11 @@ export function LibrarySection({ enabled, onMessage }: LibrarySectionProps) {
 
   return (
     <>
+      {statusError && !currentSession && (
+        <p className="text-sm text-red-700">
+          Couldn't load sync status. Progress may be out of date.
+        </p>
+      )}
       {currentSession && <SyncStatusBanner session={currentSession} />}
 
       <div className="space-y-4">

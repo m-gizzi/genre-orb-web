@@ -23,7 +23,9 @@ export function StatusBanner({
           {active && (
             <div className="h-3 w-3 animate-pulse rounded-full bg-current" />
           )}
-          <span className="font-medium">{label}</span>
+          <span className="font-medium" aria-live="polite">
+            {label}
+          </span>
         </div>
         {headerRight != null && <span className="text-sm">{headerRight}</span>}
       </div>

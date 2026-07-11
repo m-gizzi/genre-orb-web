@@ -35,6 +35,7 @@ const runningSession: ArtistMetadataSession = {
   id: 1,
   status: "running",
   progress: { total: 5, completed: 0, percent: 0 },
+  error_message: null,
   started_at: null,
   completed_at: null,
 };

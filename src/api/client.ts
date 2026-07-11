@@ -70,7 +70,12 @@ export interface Playlist {
   available_on_spotify: boolean;
 }
 
-export type SyncSessionStatus = "pending" | "running" | "completed" | "failed";
+export type SyncSessionStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "completed_with_errors"
+  | "failed";
 
 export type SyncPlaylistStatus =
   | "pending"
@@ -87,6 +92,7 @@ export interface SyncProgress {
 
 export interface LibrarySyncProgress extends SyncProgress {
   skipped: number;
+  failed: number;
 }
 
 export interface SyncSessionPlaylist {
@@ -94,12 +100,14 @@ export interface SyncSessionPlaylist {
   playlist_name: string;
   status: SyncPlaylistStatus;
   page_progress: { total: number; completed: number };
+  error_message: string | null;
 }
 
 export interface SyncSession {
   id: number;
   status: SyncSessionStatus;
   progress: LibrarySyncProgress;
+  error_message: string | null;
   started_at: string | null;
   completed_at: string | null;
   playlists: SyncSessionPlaylist[];
@@ -111,12 +119,14 @@ export interface LibraryStatus {
   rate_limited: boolean;
   rate_limit_resume_at: string | null;
   playlists_metadata_fetched_at: string | null;
+  playlists_metadata_error: string | null;
 }
 
 export interface ArtistMetadataSession {
   id: number;
   status: SyncSessionStatus;
   progress: SyncProgress;
+  error_message: string | null;
   started_at: string | null;
   completed_at: string | null;
 }

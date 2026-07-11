@@ -12,6 +12,8 @@ interface ArtistMetadataPanelProps {
 export function ArtistMetadataPanel({ enabled, onMessage }: ArtistMetadataPanelProps) {
   const {
     status,
+    isError,
+    refetch,
     currentSession,
     hasActiveSync,
     artistsTotal,
@@ -22,6 +24,17 @@ export function ArtistMetadataPanel({ enabled, onMessage }: ArtistMetadataPanelP
     resyncAll,
     isResyncing,
   } = useArtistSync({ enabled, onMessage });
+
+  if (isError) {
+    return (
+      <div className="rounded-lg border border-dashed border-red-300 p-6 text-center text-sm text-red-700">
+        <p>Couldn't load artist metadata status.</p>
+        <button type="button" onClick={() => refetch()} className="mt-1 underline">
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   if (!status || artistsTotal === 0) return null;
 
@@ -59,7 +72,7 @@ export function ArtistMetadataPanel({ enabled, onMessage }: ArtistMetadataPanelP
             {artistsSynced} / {artistsTotal}
           </span>
         </div>
-        <ProgressBar percent={percent} className="mt-2" />
+        <ProgressBar percent={percent} className="mt-2" label="Artists with genres" />
         {!hasArtistsToSync && (
           <p className="mt-2 text-sm text-green-600">
             All artists have genre metadata!

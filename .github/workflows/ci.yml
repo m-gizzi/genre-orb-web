@@ -28,7 +28,7 @@ jobs:
         run: pnpm install
 
       - name: TypeScript check
-        run: pnpm tsc --noEmit
+        run: pnpm typecheck
 
       - name: Run oxlint
         run: pnpm lint

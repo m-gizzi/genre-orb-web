@@ -26,6 +26,7 @@ export function HomePage() {
       await refreshUser();
       queryClient.removeQueries({ queryKey: queryKeys.playlists });
       queryClient.removeQueries({ queryKey: queryKeys.libraryStatus });
+      queryClient.removeQueries({ queryKey: queryKeys.artistSyncStatus });
     },
     onError: () => showError("Failed to disconnect Spotify"),
   });

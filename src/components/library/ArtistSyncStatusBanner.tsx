@@ -7,6 +7,7 @@ const STATUS_LABEL: Record<SyncSessionStatus, string> = {
   pending: "Preparing artist sync...",
   running: "Syncing artist metadata...",
   completed: "Artist sync completed",
+  completed_with_errors: "Artist sync finished with errors",
   failed: "Artist sync failed",
 };
 
@@ -29,6 +30,7 @@ export function ArtistSyncStatusBanner({ session }: ArtistSyncStatusBannerProps)
           percent={session.progress.percent}
           className="bg-white/50"
           barClassName="bg-current"
+          label="Artist sync progress"
         />
       )}
     </StatusBanner>

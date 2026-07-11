@@ -76,6 +76,7 @@ export function PlaylistList({ playlists }: PlaylistListProps) {
             checked={playlist.sync_enabled}
             onCheckedChange={() => handleToggle(playlist)}
             disabled={updateMutation.isPending}
+            aria-label={`Sync ${playlist.name}`}
           />
         </div>
       ))}
