@@ -1,15 +1,35 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { spotifyApi } from "@/api/client";
+import { queryKeys } from "@/lib/queryKeys";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SpotifyButton } from "@/components/auth/SpotifyButton";
+import { SpotifyConnectionCard } from "@/components/spotify/SpotifyConnectionCard";
+import { ArtistMetadataPanel, LibrarySection } from "@/components/library";
+import { useTransientMessage } from "@/hooks/useTransientMessage";
 
 export function HomePage() {
   const { user, logout, isAuthenticated, refreshUser } = useAuth();
   const location = useLocation();
-  const [message, setMessage] = useState<string | null>(null);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { message, show, showSuccess, showError } = useTransientMessage();
+
+  const spotifyReady = isAuthenticated && !!user?.spotify_connected;
+
+  const disconnectMutation = useMutation({
+    mutationFn: () => spotifyApi.disconnect(),
+    onSuccess: async () => {
+      await refreshUser();
+      queryClient.removeQueries({ queryKey: queryKeys.playlists });
+      queryClient.removeQueries({ queryKey: queryKeys.libraryStatus });
+      queryClient.removeQueries({ queryKey: queryKeys.artistSyncStatus });
+    },
+    onError: () => showError("Failed to disconnect Spotify"),
+  });
 
   useEffect(() => {
     const state = location.state as {
@@ -17,84 +37,66 @@ export function HomePage() {
       spotifyError?: string;
     } | null;
     if (state?.spotifyConnected) {
-      setMessage("Spotify connected successfully!");
+      showSuccess("Spotify connected successfully!");
     } else if (state?.spotifyError) {
-      setMessage(`Error: ${state.spotifyError}`);
+      showError(state.spotifyError);
     }
-    window.history.replaceState({}, document.title);
-  }, [location.state]);
-
-  useEffect(() => {
-    if (!message) return;
-
-    const timer = setTimeout(() => {
-      setMessage(null);
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [message]);
-
-  const handleDisconnectSpotify = async () => {
-    setIsDisconnecting(true);
-    try {
-      await spotifyApi.disconnect();
-      await refreshUser();
-    } catch (error) {
-      console.error("Failed to disconnect Spotify:", error);
-      setMessage("Error: Failed to disconnect Spotify");
-    } finally {
-      setIsDisconnecting(false);
+    if (state) {
+      navigate(location.pathname, { replace: true, state: null });
     }
-  };
+  }, [location.state, location.pathname, navigate, showSuccess, showError]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-8">
-      <h1 className="mb-8 text-4xl font-bold">Genre Orb</h1>
+    <div className="mx-auto min-h-screen max-w-2xl p-8">
+      <h1 className="mb-8 text-center text-4xl font-bold">Genre Orb</h1>
 
       {message && (
-        <div className="mb-4 rounded bg-muted p-4 text-sm">{message}</div>
+        <div
+          className={cn(
+            "mb-4 rounded p-4 text-center text-sm",
+            message.type === "error"
+              ? "bg-red-100 text-red-800"
+              : "bg-muted"
+          )}
+        >
+          {message.text}
+        </div>
       )}
 
       {isAuthenticated ? (
-        <div className="space-y-4 text-center">
-          <p className="text-lg">Welcome, {user?.email}!</p>
-
-          {user?.spotify_connected ? (
-            <div className="rounded-lg border p-4">
-              <p className="mb-2 font-medium text-green-600">
-                Spotify Connected
-              </p>
-              {user.spotify_profile && (
-                <p className="text-sm text-muted-foreground">
-                  {user.spotify_profile.display_name}
-                </p>
-              )}
-              <Button
-                onClick={handleDisconnectSpotify}
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                disabled={isDisconnecting}
-              >
-                {isDisconnecting ? "Disconnecting..." : "Disconnect Spotify"}
-              </Button>
-            </div>
-          ) : (
-            <SpotifyButton
-              label="Connect Spotify"
-              variant="default"
-              className="bg-green-600 hover:bg-green-700"
-            />
-          )}
-
-          <div>
-            <Button onClick={logout} variant="outline">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <p className="text-lg">Welcome, {user?.email}!</p>
+            <Button onClick={logout} variant="outline" size="sm">
               Logout
             </Button>
           </div>
+
+          {spotifyReady ? (
+            <>
+              <SpotifyConnectionCard
+                profile={user?.spotify_profile}
+                onDisconnect={() => disconnectMutation.mutate()}
+                isDisconnecting={disconnectMutation.isPending}
+              />
+              <LibrarySection enabled={spotifyReady} onMessage={show} />
+              <ArtistMetadataPanel enabled={spotifyReady} onMessage={show} />
+            </>
+          ) : (
+            <div className="space-y-4 text-center">
+              <p className="text-muted-foreground">
+                Connect your Spotify account to get started.
+              </p>
+              <SpotifyButton
+                label="Connect Spotify"
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+              />
+            </div>
+          )}
         </div>
       ) : (
-        <div className="w-full max-w-sm space-y-6 text-center">
+        <div className="mx-auto w-full max-w-sm space-y-6 text-center">
           <p className="text-muted-foreground">
             Manage your music library with smart playlists
           </p>
