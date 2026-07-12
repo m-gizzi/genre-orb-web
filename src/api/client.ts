@@ -9,8 +9,12 @@ export async function extractApiError(
 ): Promise<string> {
   if (error instanceof HTTPError) {
     try {
-      const body = (await error.response.clone().json()) as { error?: string };
-      if (body?.error) return body.error;
+      const body = (await error.response.clone().json()) as {
+        errors?: Array<{ message?: string }>;
+        error?: string;
+      };
+      const message = body?.errors?.[0]?.message ?? body?.error;
+      if (message) return message;
     } catch {
       // Response body wasn't JSON; fall back below.
     }
@@ -28,6 +32,34 @@ export const api = ky.create({
     Accept: "application/json",
   },
 });
+
+export interface PaginationMeta {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface ApiCollection<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export interface ApiResource<T> {
+  data: T;
+}
+
+function cleanParams(
+  params: object = {}
+): Record<string, string | number | boolean> {
+  const cleaned: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") {
+      cleaned[key] = value as string | number | boolean;
+    }
+  }
+  return cleaned;
+}
 
 export interface SpotifyProfile {
   display_name: string;
@@ -68,6 +100,113 @@ export interface Playlist {
   sync_enabled: boolean;
   last_synced_at: string | null;
   available_on_spotify: boolean;
+}
+
+export interface ArtistSummary {
+  id: number;
+  name: string;
+  spotify_id: string;
+  image_url: string | null;
+}
+
+export interface AlbumSummary {
+  id: number;
+  title: string;
+  spotify_id: string;
+  release_year: number | null;
+  artwork_url: string | null;
+}
+
+export type GenreSource = "spotify" | "user";
+
+export interface TrackGenre {
+  id: number;
+  genre_id: number;
+  name: string;
+  source: GenreSource;
+}
+
+export interface Track {
+  id: number;
+  title: string;
+  spotify_id: string;
+  duration_ms: number | null;
+  track_number: number | null;
+  explicit: boolean;
+  popularity: number | null;
+  preview_url: string | null;
+  album: AlbumSummary | null;
+  artists: ArtistSummary[];
+  genres: TrackGenre[];
+}
+
+export interface Artist {
+  id: number;
+  name: string;
+  spotify_id: string;
+  image_url: string | null;
+  genres: string[];
+  followers: number | null;
+  popularity: number | null;
+}
+
+export interface ArtistDetail extends Artist {
+  albums: AlbumSummary[];
+}
+
+export interface Album {
+  id: number;
+  title: string;
+  spotify_id: string;
+  release_year: number | null;
+  artwork_url: string | null;
+  total_tracks: number | null;
+  artists: ArtistSummary[];
+}
+
+export interface AlbumDetail extends Album {
+  tracks: Track[];
+}
+
+export interface Genre {
+  id: number;
+  name: string;
+}
+
+export interface PlaylistCurrentVersion {
+  id: number;
+  version_number: number;
+  track_count: number;
+  status: string;
+}
+
+export interface PlaylistDetail extends Playlist {
+  current_version: PlaylistCurrentVersion | null;
+}
+
+export type TrackSort = "title" | "popularity" | "duration" | "year";
+
+export interface TrackFilters {
+  genre?: string;
+  artist?: string;
+  album_id?: number;
+  year?: number;
+  year_min?: number;
+  year_max?: number;
+  duration_min?: number;
+  duration_max?: number;
+  title?: string;
+  explicit?: boolean;
+  sort?: TrackSort;
+  order?: "asc" | "desc";
+  page?: number;
+  per_page?: number;
+}
+
+export interface PageParams {
+  search?: string;
+  page?: number;
+  per_page?: number;
 }
 
 export type SyncSessionStatus =
@@ -174,34 +313,106 @@ export const spotifyApi = {
 };
 
 export const libraryApi = {
-  getStatus: () => api.get("api/v1/library/status").json<LibraryStatus>(),
+  getStatus: () =>
+    api
+      .get("api/v1/library/status")
+      .json<ApiResource<LibraryStatus>>()
+      .then((r) => r.data),
 
   fetchPlaylists: () =>
-    api.post("api/v1/library/fetch_playlists").json<{ status: string }>(),
+    api
+      .post("api/v1/library/fetch_playlists")
+      .json<ApiResource<{ status: string }>>()
+      .then((r) => r.data),
 
   sync: () =>
     api
       .post("api/v1/library/sync")
-      .json<{ status: string; session: SyncSession }>(),
+      .json<ApiResource<{ status: string; session: SyncSession }>>()
+      .then((r) => r.data),
 };
 
 export const playlistsApi = {
-  list: () => api.get("api/v1/playlists").json<Playlist[]>(),
+  list: () =>
+    api
+      .get("api/v1/playlists", { searchParams: { per_page: 100 } })
+      .json<ApiCollection<Playlist>>()
+      .then((r) => r.data),
+
+  get: (id: number) =>
+    api
+      .get(`api/v1/playlists/${id}`)
+      .json<ApiResource<PlaylistDetail>>()
+      .then((r) => r.data),
+
+  tracks: (id: number, params: PageParams = {}) =>
+    api
+      .get(`api/v1/playlists/${id}/tracks`, { searchParams: cleanParams(params) })
+      .json<ApiCollection<Track>>(),
 
   update: (id: number, data: { sync_enabled: boolean }) =>
     api
       .patch(`api/v1/playlists/${id}`, { json: { playlist: data } })
-      .json<Playlist>(),
+      .json<ApiResource<Playlist>>()
+      .then((r) => r.data),
 };
 
 export const artistsApi = {
+  list: (params: PageParams = {}) =>
+    api
+      .get("api/v1/artists", { searchParams: cleanParams(params) })
+      .json<ApiCollection<Artist>>(),
+
+  get: (id: number) =>
+    api
+      .get(`api/v1/artists/${id}`)
+      .json<ApiResource<ArtistDetail>>()
+      .then((r) => r.data),
+
   getSyncStatus: () =>
-    api.get("api/v1/artists/sync_status").json<ArtistSyncStatus>(),
+    api
+      .get("api/v1/artists/sync_status")
+      .json<ApiResource<ArtistSyncStatus>>()
+      .then((r) => r.data),
 
   sync: (options?: { syncAll?: boolean }) =>
     api
       .post("api/v1/artists/sync", {
         json: options?.syncAll ? { sync_all: true } : undefined,
       })
-      .json<{ status: string; session: ArtistMetadataSession }>(),
+      .json<ApiResource<{ status: string; session: ArtistMetadataSession }>>()
+      .then((r) => r.data),
+};
+
+export const tracksApi = {
+  list: (filters: TrackFilters = {}) =>
+    api
+      .get("api/v1/tracks", { searchParams: cleanParams(filters) })
+      .json<ApiCollection<Track>>(),
+
+  get: (id: number) =>
+    api
+      .get(`api/v1/tracks/${id}`)
+      .json<ApiResource<Track>>()
+      .then((r) => r.data),
+};
+
+export const albumsApi = {
+  list: (params: PageParams = {}) =>
+    api
+      .get("api/v1/albums", { searchParams: cleanParams(params) })
+      .json<ApiCollection<Album>>(),
+
+  get: (id: number) =>
+    api
+      .get(`api/v1/albums/${id}`)
+      .json<ApiResource<AlbumDetail>>()
+      .then((r) => r.data),
+};
+
+export const genresApi = {
+  list: (params: PageParams = {}) =>
+    api
+      .get("api/v1/genres", { searchParams: cleanParams(params) })
+      .json<ApiCollection<Genre>>(),
 };
