@@ -121,6 +121,7 @@ export type GenreSource = "spotify" | "user";
 
 export interface TrackGenre {
   id: number;
+  genre_id: number;
   name: string;
   source: GenreSource;
 }
@@ -332,7 +333,6 @@ export const libraryApi = {
 };
 
 export const playlistsApi = {
-  // Playlists are few per user; request the max page size and return the list.
   list: () =>
     api
       .get("api/v1/playlists", { searchParams: { per_page: 100 } })
