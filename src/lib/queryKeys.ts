@@ -4,13 +4,12 @@ import type {
   SearchListParams,
   CatalogListParams,
   AlbumListParams,
-  PlaylistListParams,
 } from "@/api/client";
 
 export const queryKeys = {
   libraryStatus: ["libraryStatus"] as const,
   playlists: ["playlists"] as const,
-  playlistsPaged: (params: PlaylistListParams = {}) =>
+  playlistsPaged: (params: SearchListParams = {}) =>
     ["playlists", "paged", params] as const,
   likedPlaylist: ["playlists", "liked"] as const,
   artistSyncStatus: ["artistSyncStatus"] as const,

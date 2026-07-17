@@ -4,6 +4,7 @@ import { HeartIcon, ListMusicIcon } from "lucide-react";
 import type { Playlist } from "@/api/client";
 import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
 import { usePagination } from "@/hooks/usePagination";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { CARD_PER_PAGE_OPTIONS, DEFAULT_CARD_PER_PAGE } from "@/lib/config";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
   ErrorState,
   Pagination,
   PlaylistSyncSwitch,
+  SearchInput,
   SortControl,
 } from "@/components/catalog";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -27,11 +29,19 @@ const SORT_LABELS: Record<string, string> = {
 
 export function PlaylistsPage() {
   const { page, perPage, setPage, setPerPage } = usePagination(DEFAULT_CARD_PER_PAGE);
+  const [search, setSearch] = useState("");
   const [sort, setSort] = useState("name");
   const [order, setOrder] = useState<"asc" | "desc">("asc");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const liked = useLikedPlaylist();
-  const query = usePlaylistsPage({ page, per_page: perPage, sort, order });
+  const query = usePlaylistsPage({
+    search: debouncedSearch || undefined,
+    page,
+    per_page: perPage,
+    sort,
+    order,
+  });
   const playlists = query.data?.data ?? [];
 
   const resetToFirstPage = () => setPage(1);
@@ -42,34 +52,48 @@ export function PlaylistsPage() {
         title="Playlists"
         description="Your synced playlists and Liked Songs."
         actions={
-          <SortControl
-            sort={sort}
-            order={order}
-            options={SORT_LABELS}
-            onSortChange={(value) => {
-              setSort(value);
-              resetToFirstPage();
-            }}
-            onOrderChange={(value) => {
-              setOrder(value);
-              resetToFirstPage();
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <SearchInput
+              value={search}
+              onChange={(value) => {
+                setSearch(value);
+                resetToFirstPage();
+              }}
+              placeholder="Search playlists…"
+            />
+            <SortControl
+              sort={sort}
+              order={order}
+              options={SORT_LABELS}
+              onSortChange={(value) => {
+                setSort(value);
+                resetToFirstPage();
+              }}
+              onOrderChange={(value) => {
+                setOrder(value);
+                resetToFirstPage();
+              }}
+            />
+          </div>
         }
       />
 
-      {liked.data && <LikedSongsCard playlist={liked.data} />}
+      {!search && liked.data && <LikedSongsCard playlist={liked.data} />}
 
       {query.isLoading ? (
         <CardGridSkeleton />
       ) : query.isError ? (
         <ErrorState error={query.error} />
       ) : playlists.length === 0 ? (
-        <EmptyState
-          title="No playlists yet"
-          description="Fetch and sync your Spotify playlists from the Library page."
-          action={<Button render={<Link to="/library" />}>Go to Library</Button>}
-        />
+        debouncedSearch ? (
+          <EmptyState title="No playlists match your search" showOrb={false} />
+        ) : (
+          <EmptyState
+            title="No playlists yet"
+            description="Fetch and sync your Spotify playlists from the Library page."
+            action={<Button render={<Link to="/library" />}>Go to Library</Button>}
+          />
+        )
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

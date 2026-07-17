@@ -226,8 +226,6 @@ export interface AlbumListParams extends CatalogListParams {
   year_max?: number;
 }
 
-export interface PlaylistListParams extends Pagination, Sortable {}
-
 export type SyncSessionStatus =
   | "pending"
   | "running"
@@ -358,7 +356,7 @@ export const playlistsApi = {
       .json<ApiCollection<Playlist>>()
       .then((r) => r.data),
 
-  paginated: (params: PlaylistListParams = {}) =>
+  paginated: (params: SearchListParams = {}) =>
     api
       .get("api/v1/playlists", { searchParams: cleanParams(params) })
       .json<ApiCollection<Playlist>>(),

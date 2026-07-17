@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { playlistsApi, type PlaylistListParams } from "@/api/client";
+import { playlistsApi, type SearchListParams } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
 
 export function usePlaylists(enabled: boolean) {
@@ -10,7 +10,7 @@ export function usePlaylists(enabled: boolean) {
   });
 }
 
-export function usePlaylistsPage(params: PlaylistListParams = {}, enabled = true) {
+export function usePlaylistsPage(params: SearchListParams = {}, enabled = true) {
   return useQuery({
     queryKey: queryKeys.playlistsPaged(params),
     queryFn: () => playlistsApi.paginated(params),
