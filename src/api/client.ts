@@ -161,6 +161,7 @@ export interface Album {
   release_year: number | null;
   artwork_url: string | null;
   total_tracks: number | null;
+  saved_tracks: number;
   artists: ArtistSummary[];
 }
 
@@ -184,12 +185,18 @@ export interface PlaylistDetail extends Playlist {
   current_version: PlaylistCurrentVersion | null;
 }
 
-export type TrackSort = "title" | "popularity" | "duration" | "year";
+export type TrackSort =
+  | "title"
+  | "artist"
+  | "album"
+  | "year"
+  | "popularity"
+  | "duration";
 
 export interface TrackFilters {
   genre?: string;
   artist?: string;
-  album_id?: number;
+  album?: string;
   year?: number;
   year_min?: number;
   year_max?: number;
