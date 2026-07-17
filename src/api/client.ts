@@ -203,11 +203,30 @@ export interface TrackFilters {
   per_page?: number;
 }
 
-export interface PageParams {
-  search?: string;
+export interface Pagination {
   page?: number;
   per_page?: number;
 }
+
+export interface Sortable {
+  sort?: string;
+  order?: "asc" | "desc";
+}
+
+export interface SearchListParams extends Pagination, Sortable {
+  search?: string;
+}
+
+export interface CatalogListParams extends SearchListParams {
+  genre?: number;
+}
+
+export interface AlbumListParams extends CatalogListParams {
+  year_min?: number;
+  year_max?: number;
+}
+
+export interface PlaylistListParams extends Pagination, Sortable {}
 
 export type SyncSessionStatus =
   | "pending"
@@ -339,13 +358,24 @@ export const playlistsApi = {
       .json<ApiCollection<Playlist>>()
       .then((r) => r.data),
 
+  paginated: (params: PlaylistListParams = {}) =>
+    api
+      .get("api/v1/playlists", { searchParams: cleanParams(params) })
+      .json<ApiCollection<Playlist>>(),
+
+  liked: () =>
+    api
+      .get("api/v1/playlists/liked")
+      .json<ApiResource<Playlist | null>>()
+      .then((r) => r.data),
+
   get: (id: number) =>
     api
       .get(`api/v1/playlists/${id}`)
       .json<ApiResource<PlaylistDetail>>()
       .then((r) => r.data),
 
-  tracks: (id: number, params: PageParams = {}) =>
+  tracks: (id: number, params: Pagination = {}) =>
     api
       .get(`api/v1/playlists/${id}/tracks`, { searchParams: cleanParams(params) })
       .json<ApiCollection<Track>>(),
@@ -358,7 +388,7 @@ export const playlistsApi = {
 };
 
 export const artistsApi = {
-  list: (params: PageParams = {}) =>
+  list: (params: CatalogListParams = {}) =>
     api
       .get("api/v1/artists", { searchParams: cleanParams(params) })
       .json<ApiCollection<Artist>>(),
@@ -398,7 +428,7 @@ export const tracksApi = {
 };
 
 export const albumsApi = {
-  list: (params: PageParams = {}) =>
+  list: (params: AlbumListParams = {}) =>
     api
       .get("api/v1/albums", { searchParams: cleanParams(params) })
       .json<ApiCollection<Album>>(),
@@ -411,8 +441,14 @@ export const albumsApi = {
 };
 
 export const genresApi = {
-  list: (params: PageParams = {}) =>
+  list: (params: SearchListParams = {}) =>
     api
       .get("api/v1/genres", { searchParams: cleanParams(params) })
       .json<ApiCollection<Genre>>(),
+
+  get: (id: number) =>
+    api
+      .get(`api/v1/genres/${id}`)
+      .json<ApiResource<Genre>>()
+      .then((r) => r.data),
 };
