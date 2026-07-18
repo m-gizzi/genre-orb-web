@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   artistsApi,
@@ -7,6 +7,7 @@ import {
   type ArtistSyncStatus,
 } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
+import { invalidateLibraryQueries } from "@/lib/invalidate";
 import { POLL_INTERVAL_MS, SYNC_START_TIMEOUT_MS } from "@/lib/config";
 import { useTemporaryFlag } from "@/hooks/useTemporaryFlag";
 import type { TransientMessage } from "@/hooks/useTransientMessage";
@@ -47,6 +48,14 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
   useEffect(() => {
     if (awaitingStart && hasActiveSync) stopAwaiting();
   }, [awaitingStart, hasActiveSync, stopAwaiting]);
+
+  const wasActiveRef = useRef(false);
+  useEffect(() => {
+    if (wasActiveRef.current && !hasActiveSync) {
+      invalidateLibraryQueries(queryClient);
+    }
+    wasActiveRef.current = hasActiveSync;
+  }, [hasActiveSync, queryClient]);
 
   const applyStartedSession = async (session: ArtistMetadataSession) => {
     await queryClient.cancelQueries({ queryKey: queryKeys.artistSyncStatus });

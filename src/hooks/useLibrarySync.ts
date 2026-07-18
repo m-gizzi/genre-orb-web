@@ -6,6 +6,7 @@ import {
   type LibraryStatus,
 } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
+import { invalidateLibraryQueries } from "@/lib/invalidate";
 import {
   METADATA_FETCH_TIMEOUT_MS,
   POLL_INTERVAL_MS,
@@ -60,7 +61,7 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
   const wasActiveRef = useRef(false);
   useEffect(() => {
     if (wasActiveRef.current && !hasActiveSync) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.playlists });
+      invalidateLibraryQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: queryKeys.artistSyncStatus });
     }
     wasActiveRef.current = hasActiveSync;

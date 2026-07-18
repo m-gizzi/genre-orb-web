@@ -1,26 +1,34 @@
-import type { AlbumListParams, CatalogListParams } from "@/api/client";
+import type {
+  AlbumListParams,
+  CatalogListParams,
+  SearchListParams,
+} from "@/api/client";
 import { DEFAULT_CARD_PER_PAGE } from "@/lib/config";
 
-function parseCatalogFilters(
+interface ListParamOptions {
+  defaultSort: string;
+  defaultPerPage?: number;
+}
+
+export function parseListParams(
   params: URLSearchParams,
-  defaultSort: string,
-): CatalogListParams {
-  const filters: CatalogListParams = {
+  { defaultSort, defaultPerPage = DEFAULT_CARD_PER_PAGE }: ListParamOptions,
+): SearchListParams {
+  const filters: SearchListParams = {
     sort: params.get("sort") || defaultSort,
     order: params.get("order") === "desc" ? "desc" : "asc",
     page: params.get("page") ? Number(params.get("page")) : 1,
     per_page: params.get("per_page")
       ? Number(params.get("per_page"))
-      : DEFAULT_CARD_PER_PAGE,
+      : defaultPerPage,
   };
   if (params.get("search")) filters.search = params.get("search")!;
-  if (params.get("genre")) filters.genre = Number(params.get("genre"));
   return filters;
 }
 
-function catalogFiltersToParams(
-  filters: CatalogListParams,
-  defaultSort: string,
+export function listParamsToParams(
+  filters: SearchListParams,
+  { defaultSort, defaultPerPage = DEFAULT_CARD_PER_PAGE }: ListParamOptions,
 ): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [key, value] of Object.entries(filters)) {
@@ -28,10 +36,19 @@ function catalogFiltersToParams(
     if (key === "sort" && value === defaultSort) continue;
     if (key === "order" && value === "asc") continue;
     if (key === "page" && value === 1) continue;
-    if (key === "per_page" && value === DEFAULT_CARD_PER_PAGE) continue;
+    if (key === "per_page" && value === defaultPerPage) continue;
     out[key] = String(value);
   }
   return out;
+}
+
+function parseCatalogFilters(
+  params: URLSearchParams,
+  defaultSort: string,
+): CatalogListParams {
+  const filters: CatalogListParams = parseListParams(params, { defaultSort });
+  if (params.get("genre")) filters.genre = Number(params.get("genre"));
+  return filters;
 }
 
 export function parseArtistFilters(params: URLSearchParams): CatalogListParams {
@@ -39,7 +56,7 @@ export function parseArtistFilters(params: URLSearchParams): CatalogListParams {
 }
 
 export function artistFiltersToParams(filters: CatalogListParams) {
-  return catalogFiltersToParams(filters, "name");
+  return listParamsToParams(filters, { defaultSort: "name" });
 }
 
 export function parseAlbumFilters(params: URLSearchParams): AlbumListParams {
@@ -51,5 +68,5 @@ export function parseAlbumFilters(params: URLSearchParams): AlbumListParams {
 }
 
 export function albumFiltersToParams(filters: AlbumListParams) {
-  return catalogFiltersToParams(filters, "title");
+  return listParamsToParams(filters, { defaultSort: "title" });
 }

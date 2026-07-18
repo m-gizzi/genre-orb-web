@@ -1,5 +1,4 @@
-export { LibrarySection } from "./LibrarySection";
-export { ArtistMetadataPanel } from "./ArtistMetadataPanel";
-export { PlaylistList } from "./PlaylistList";
+export { SyncControls } from "./SyncControls";
+export { SyncActivity } from "./SyncActivity";
 export { SyncStatusBanner } from "./SyncStatusBanner";
 export { ArtistSyncStatusBanner } from "./ArtistSyncStatusBanner";

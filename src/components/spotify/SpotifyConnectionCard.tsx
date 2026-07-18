@@ -15,7 +15,9 @@ export function SpotifyConnectionCard({
   return (
     <div className="flex items-center justify-between rounded-lg border bg-card p-4">
       <div>
-        <p className="font-medium text-green-600">Spotify Connected</p>
+        <p className="font-medium text-emerald-600 dark:text-emerald-400">
+          Spotify Connected
+        </p>
         {profile && (
           <p className="text-sm text-muted-foreground">{profile.display_name}</p>
         )}
