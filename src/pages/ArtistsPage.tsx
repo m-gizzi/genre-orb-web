@@ -1,17 +1,22 @@
-import { useState } from "react";
+import { useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import type { CatalogListParams } from "@/api/client";
+import {
+  parseArtistFilters,
+  artistFiltersToParams,
+} from "@/lib/catalogFilterParams";
 import { useArtists } from "@/hooks/useArtists";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { usePagination } from "@/hooks/usePagination";
-import { CARD_PER_PAGE_OPTIONS, DEFAULT_CARD_PER_PAGE } from "@/lib/config";
+import { useGenre } from "@/hooks/useGenres";
+import { CARD_PER_PAGE_OPTIONS } from "@/lib/config";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   ArtistCard,
   CardGridSkeleton,
+  DebouncedSearchInput,
   EmptyState,
   ErrorState,
   GenreAutocomplete,
   Pagination,
-  SearchInput,
   SortControl,
 } from "@/components/catalog";
 
@@ -22,24 +27,23 @@ const SORT_LABELS: Record<string, string> = {
 };
 
 export function ArtistsPage() {
-  const [search, setSearch] = useState("");
-  const [genre, setGenre] = useState<{ id: number; name: string } | null>(null);
-  const [sort, setSort] = useState("name");
-  const [order, setOrder] = useState<"asc" | "desc">("asc");
-  const { page, perPage, setPage, setPerPage } = usePagination(DEFAULT_CARD_PER_PAGE);
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = parseArtistFilters(searchParams);
 
-  const resetToFirstPage = () => setPage(1);
+  const genreId = filters.genre ?? NaN;
+  const genreQuery = useGenre(genreId);
 
-  const query = useArtists({
-    search: debouncedSearch || undefined,
-    genre: genre?.id,
-    sort,
-    order,
-    page,
-    per_page: perPage,
-  });
+  const query = useArtists(filters);
   const artists = query.data?.data ?? [];
+
+  const applyPatch = useCallback(
+    (patch: Partial<CatalogListParams>) => {
+      const next = { ...parseArtistFilters(searchParams), ...patch };
+      if (!("page" in patch)) next.page = 1;
+      setSearchParams(artistFiltersToParams(next), { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
 
   return (
     <div>
@@ -48,37 +52,25 @@ export function ArtistsPage() {
         description="Every artist in your synced library."
         actions={
           <SortControl
-            sort={sort}
-            order={order}
+            sort={filters.sort ?? "name"}
+            order={filters.order ?? "asc"}
             options={SORT_LABELS}
-            onSortChange={(value) => {
-              setSort(value);
-              resetToFirstPage();
-            }}
-            onOrderChange={(value) => {
-              setOrder(value);
-              resetToFirstPage();
-            }}
+            onSortChange={(sort) => applyPatch({ sort })}
+            onOrderChange={(order) => applyPatch({ order })}
           />
         }
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <SearchInput
-          value={search}
-          onChange={(value) => {
-            setSearch(value);
-            resetToFirstPage();
-          }}
+        <DebouncedSearchInput
+          value={filters.search ?? ""}
+          onCommit={(value) => applyPatch({ search: value || undefined })}
           placeholder="Search artists…"
         />
         <GenreAutocomplete
-          valueId={genre?.id}
-          valueName={genre?.name}
-          onSelect={(next) => {
-            setGenre(next);
-            resetToFirstPage();
-          }}
+          valueId={filters.genre}
+          valueName={genreQuery.data?.name}
+          onSelect={(next) => applyPatch({ genre: next?.id })}
         />
       </div>
 
@@ -99,8 +91,8 @@ export function ArtistsPage() {
             <Pagination
               meta={query.data.meta}
               label="artists"
-              onPageChange={setPage}
-              onPerPageChange={setPerPage}
+              onPageChange={(page) => applyPatch({ page })}
+              onPerPageChange={(per_page) => applyPatch({ per_page })}
               perPageOptions={CARD_PER_PAGE_OPTIONS}
             />
           )}

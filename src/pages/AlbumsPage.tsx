@@ -1,24 +1,30 @@
-import { useState } from "react";
+import { useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import type { AlbumListParams } from "@/api/client";
+import {
+  parseAlbumFilters,
+  albumFiltersToParams,
+} from "@/lib/catalogFilterParams";
 import { useAlbums } from "@/hooks/useAlbums";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { usePagination } from "@/hooks/usePagination";
-import { CARD_PER_PAGE_OPTIONS, DEFAULT_CARD_PER_PAGE } from "@/lib/config";
+import { useGenre } from "@/hooks/useGenres";
+import { CARD_PER_PAGE_OPTIONS } from "@/lib/config";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   AlbumCard,
   CardGridSkeleton,
   DebouncedInput,
+  DebouncedSearchInput,
   EmptyState,
   ErrorState,
   GenreAutocomplete,
   Pagination,
-  SearchInput,
   SortControl,
 } from "@/components/catalog";
 
 const SORT_LABELS: Record<string, string> = {
   title: "Title",
   release_year: "Release year",
+  popularity: "Popularity",
 };
 
 const toNumber = (value: string) => {
@@ -27,28 +33,23 @@ const toNumber = (value: string) => {
 };
 
 export function AlbumsPage() {
-  const [search, setSearch] = useState("");
-  const [genre, setGenre] = useState<{ id: number; name: string } | null>(null);
-  const [yearMin, setYearMin] = useState<number | undefined>();
-  const [yearMax, setYearMax] = useState<number | undefined>();
-  const [sort, setSort] = useState("title");
-  const [order, setOrder] = useState<"asc" | "desc">("asc");
-  const { page, perPage, setPage, setPerPage } = usePagination(DEFAULT_CARD_PER_PAGE);
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = parseAlbumFilters(searchParams);
 
-  const resetToFirstPage = () => setPage(1);
+  const genreId = filters.genre ?? NaN;
+  const genreQuery = useGenre(genreId);
 
-  const query = useAlbums({
-    search: debouncedSearch || undefined,
-    genre: genre?.id,
-    year_min: yearMin,
-    year_max: yearMax,
-    sort,
-    order,
-    page,
-    per_page: perPage,
-  });
+  const query = useAlbums(filters);
   const albums = query.data?.data ?? [];
+
+  const applyPatch = useCallback(
+    (patch: Partial<AlbumListParams>) => {
+      const next = { ...parseAlbumFilters(searchParams), ...patch };
+      if (!("page" in patch)) next.page = 1;
+      setSearchParams(albumFiltersToParams(next), { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
 
   return (
     <div>
@@ -57,37 +58,30 @@ export function AlbumsPage() {
         description="Every album in your synced library."
         actions={
           <SortControl
-            sort={sort}
-            order={order}
+            sort={filters.sort ?? "title"}
+            order={filters.order ?? "asc"}
             options={SORT_LABELS}
-            onSortChange={(value) => {
-              setSort(value);
-              resetToFirstPage();
-            }}
-            onOrderChange={(value) => {
-              setOrder(value);
-              resetToFirstPage();
-            }}
+            onSortChange={(sort) => applyPatch({ sort })}
+            onOrderChange={(order) => applyPatch({ order })}
           />
         }
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <SearchInput
-          value={search}
-          onChange={(value) => {
-            setSearch(value);
-            resetToFirstPage();
-          }}
+        <DebouncedSearchInput
+          value={filters.search ?? ""}
+          onCommit={(value) => applyPatch({ search: value || undefined })}
           placeholder="Search albums…"
         />
+        <DebouncedSearchInput
+          value={filters.artist ?? ""}
+          onCommit={(value) => applyPatch({ artist: value || undefined })}
+          placeholder="Artist…"
+        />
         <GenreAutocomplete
-          valueId={genre?.id}
-          valueName={genre?.name}
-          onSelect={(next) => {
-            setGenre(next);
-            resetToFirstPage();
-          }}
+          valueId={filters.genre}
+          valueName={genreQuery.data?.name}
+          onSelect={(next) => applyPatch({ genre: next?.id })}
         />
         <div className="flex items-center gap-1">
           <DebouncedInput
@@ -95,22 +89,16 @@ export function AlbumsPage() {
             inputMode="numeric"
             placeholder="Year ≥"
             className="w-24"
-            value={yearMin != null ? String(yearMin) : ""}
-            onCommit={(value) => {
-              setYearMin(toNumber(value));
-              resetToFirstPage();
-            }}
+            value={filters.year_min != null ? String(filters.year_min) : ""}
+            onCommit={(value) => applyPatch({ year_min: toNumber(value) })}
           />
           <DebouncedInput
             type="number"
             inputMode="numeric"
             placeholder="Year ≤"
             className="w-24"
-            value={yearMax != null ? String(yearMax) : ""}
-            onCommit={(value) => {
-              setYearMax(toNumber(value));
-              resetToFirstPage();
-            }}
+            value={filters.year_max != null ? String(filters.year_max) : ""}
+            onCommit={(value) => applyPatch({ year_max: toNumber(value) })}
           />
         </div>
       </div>
@@ -132,8 +120,8 @@ export function AlbumsPage() {
             <Pagination
               meta={query.data.meta}
               label="albums"
-              onPageChange={setPage}
-              onPerPageChange={setPerPage}
+              onPageChange={(page) => applyPatch({ page })}
+              onPerPageChange={(per_page) => applyPatch({ per_page })}
               perPageOptions={CARD_PER_PAGE_OPTIONS}
             />
           )}

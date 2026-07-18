@@ -1,22 +1,24 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { HeartIcon, ListMusicIcon } from "lucide-react";
-import type { Playlist } from "@/api/client";
+import type { Playlist, SearchListParams } from "@/api/client";
 import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
-import { usePagination } from "@/hooks/usePagination";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { CARD_PER_PAGE_OPTIONS, DEFAULT_CARD_PER_PAGE } from "@/lib/config";
+import {
+  parseListParams,
+  listParamsToParams,
+} from "@/lib/catalogFilterParams";
+import { CARD_PER_PAGE_OPTIONS } from "@/lib/config";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CardGridSkeleton,
+  DebouncedSearchInput,
   EmptyState,
   ErrorState,
   Pagination,
   PlaylistSyncSwitch,
-  SearchInput,
   SortControl,
 } from "@/components/catalog";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -26,25 +28,24 @@ const SORT_LABELS: Record<string, string> = {
   last_synced_at: "Last synced",
   track_count: "Tracks",
 };
+const LIST_OPTIONS = { defaultSort: "name" };
 
 export function PlaylistsPage() {
-  const { page, perPage, setPage, setPerPage } = usePagination(DEFAULT_CARD_PER_PAGE);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("name");
-  const [order, setOrder] = useState<"asc" | "desc">("asc");
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = parseListParams(searchParams, LIST_OPTIONS);
 
   const liked = useLikedPlaylist();
-  const query = usePlaylistsPage({
-    search: debouncedSearch || undefined,
-    page,
-    per_page: perPage,
-    sort,
-    order,
-  });
+  const query = usePlaylistsPage(filters);
   const playlists = query.data?.data ?? [];
 
-  const resetToFirstPage = () => setPage(1);
+  const applyPatch = useCallback(
+    (patch: Partial<SearchListParams>) => {
+      const next = { ...parseListParams(searchParams, LIST_OPTIONS), ...patch };
+      if (!("page" in patch)) next.page = 1;
+      setSearchParams(listParamsToParams(next, LIST_OPTIONS), { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
 
   return (
     <div>
@@ -53,39 +54,30 @@ export function PlaylistsPage() {
         description="Your synced playlists and Liked Songs."
         actions={
           <div className="flex items-center gap-2">
-            <SearchInput
-              value={search}
-              onChange={(value) => {
-                setSearch(value);
-                resetToFirstPage();
-              }}
+            <DebouncedSearchInput
+              value={filters.search ?? ""}
+              onCommit={(value) => applyPatch({ search: value || undefined })}
               placeholder="Search playlists…"
             />
             <SortControl
-              sort={sort}
-              order={order}
+              sort={filters.sort ?? "name"}
+              order={filters.order ?? "asc"}
               options={SORT_LABELS}
-              onSortChange={(value) => {
-                setSort(value);
-                resetToFirstPage();
-              }}
-              onOrderChange={(value) => {
-                setOrder(value);
-                resetToFirstPage();
-              }}
+              onSortChange={(sort) => applyPatch({ sort })}
+              onOrderChange={(order) => applyPatch({ order })}
             />
           </div>
         }
       />
 
-      {!search && liked.data && <LikedSongsCard playlist={liked.data} />}
+      {!filters.search && liked.data && <LikedSongsCard playlist={liked.data} />}
 
       {query.isLoading ? (
         <CardGridSkeleton />
       ) : query.isError ? (
         <ErrorState error={query.error} />
       ) : playlists.length === 0 ? (
-        debouncedSearch ? (
+        filters.search ? (
           <EmptyState title="No playlists match your search" showOrb={false} />
         ) : (
           <EmptyState
@@ -129,8 +121,8 @@ export function PlaylistsPage() {
             <Pagination
               meta={query.data.meta}
               label="playlists"
-              onPageChange={setPage}
-              onPerPageChange={setPerPage}
+              onPageChange={(page) => applyPatch({ page })}
+              onPerPageChange={(per_page) => applyPatch({ per_page })}
               perPageOptions={CARD_PER_PAGE_OPTIONS}
             />
           )}

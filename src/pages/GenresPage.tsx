@@ -1,35 +1,41 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import type { SearchListParams } from "@/api/client";
 import { useGenres } from "@/hooks/useGenres";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { usePagination } from "@/hooks/usePagination";
+import {
+  parseListParams,
+  listParamsToParams,
+} from "@/lib/catalogFilterParams";
 import { DEFAULT_GENRE_PER_PAGE, GENRE_PER_PAGE_OPTIONS } from "@/lib/config";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  DebouncedSearchInput,
   EmptyState,
   ErrorState,
   Pagination,
-  SearchInput,
   SortControl,
 } from "@/components/catalog";
 
 const SORT_LABELS: Record<string, string> = { name: "Name" };
+const LIST_OPTIONS = { defaultSort: "name", defaultPerPage: DEFAULT_GENRE_PER_PAGE };
 
 export function GenresPage() {
-  const [search, setSearch] = useState("");
-  const [order, setOrder] = useState<"asc" | "desc">("asc");
-  const { page, perPage, setPage, setPerPage } = usePagination(DEFAULT_GENRE_PER_PAGE);
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = parseListParams(searchParams, LIST_OPTIONS);
 
-  const query = useGenres({
-    search: debouncedSearch || undefined,
-    order,
-    page,
-    per_page: perPage,
-  });
+  const query = useGenres(filters);
   const genres = query.data?.data ?? [];
+
+  const applyPatch = useCallback(
+    (patch: Partial<SearchListParams>) => {
+      const next = { ...parseListParams(searchParams, LIST_OPTIONS), ...patch };
+      if (!("page" in patch)) next.page = 1;
+      setSearchParams(listParamsToParams(next, LIST_OPTIONS), { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
 
   return (
     <div>
@@ -38,23 +44,17 @@ export function GenresPage() {
         description="Explore the genres across your library."
         actions={
           <div className="flex items-center gap-2">
-            <SearchInput
-              value={search}
-              onChange={(value) => {
-                setSearch(value);
-                setPage(1);
-              }}
+            <DebouncedSearchInput
+              value={filters.search ?? ""}
+              onCommit={(value) => applyPatch({ search: value || undefined })}
               placeholder="Search genres…"
             />
             <SortControl
               sort="name"
-              order={order}
+              order={filters.order ?? "asc"}
               options={SORT_LABELS}
               onSortChange={() => {}}
-              onOrderChange={(value) => {
-                setOrder(value);
-                setPage(1);
-              }}
+              onOrderChange={(order) => applyPatch({ order })}
             />
           </div>
         }
@@ -84,8 +84,8 @@ export function GenresPage() {
             <Pagination
               meta={query.data.meta}
               label="genres"
-              onPageChange={setPage}
-              onPerPageChange={setPerPage}
+              onPageChange={(page) => applyPatch({ page })}
+              onPerPageChange={(per_page) => applyPatch({ per_page })}
               perPageOptions={GENRE_PER_PAGE_OPTIONS}
             />
           )}

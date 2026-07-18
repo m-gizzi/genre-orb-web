@@ -157,7 +157,7 @@ export interface GenreRef {
 
 export interface ArtistDetail extends Omit<Artist, "genres"> {
   genres: GenreRef[];
-  albums: AlbumSummary[];
+  albums: Album[];
 }
 
 export interface Album {
@@ -235,6 +235,7 @@ export interface CatalogListParams extends SearchListParams {
 }
 
 export interface AlbumListParams extends CatalogListParams {
+  artist?: string;
   year_min?: number;
   year_max?: number;
 }
