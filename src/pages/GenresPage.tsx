@@ -18,7 +18,10 @@ import {
   SortControl,
 } from "@/components/catalog";
 
-const SORT_LABELS: Record<string, string> = { name: "Name" };
+const SORT_LABELS: Record<string, string> = {
+  name: "Name",
+  track_count: "Track count",
+};
 const LIST_OPTIONS = { defaultSort: "name", defaultPerPage: DEFAULT_GENRE_PER_PAGE };
 
 export function GenresPage() {
@@ -50,10 +53,10 @@ export function GenresPage() {
               placeholder="Search genres…"
             />
             <SortControl
-              sort="name"
+              sort={filters.sort ?? "name"}
               order={filters.order ?? "asc"}
               options={SORT_LABELS}
-              onSortChange={() => {}}
+              onSortChange={(sort) => applyPatch({ sort })}
               onOrderChange={(order) => applyPatch({ order })}
             />
           </div>
