@@ -150,7 +150,13 @@ export interface Artist {
   popularity: number | null;
 }
 
-export interface ArtistDetail extends Artist {
+export interface GenreRef {
+  id: number | null;
+  name: string;
+}
+
+export interface ArtistDetail extends Omit<Artist, "genres"> {
+  genres: GenreRef[];
   albums: AlbumSummary[];
 }
 
