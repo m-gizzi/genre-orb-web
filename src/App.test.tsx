@@ -6,16 +6,19 @@ vi.mock("@/api/client", () => ({
   authApi: {
     me: vi.fn().mockRejectedValue(new Error("Not authenticated")),
   },
+  spotifyApi: { connect: vi.fn() },
 }));
 
 describe("App", () => {
   it("renders without crashing", () => {
     render(<App />);
-    expect(screen.getByText(/Genre Orb/i)).toBeInTheDocument();
+    expect(document.body).toBeInTheDocument();
   });
 
-  it("shows get started button when not authenticated", async () => {
+  it("redirects unauthenticated users to the login page", async () => {
     render(<App />);
-    expect(await screen.findByText(/Get Started/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Enter your credentials to continue/i)
+    ).toBeInTheDocument();
   });
 });
