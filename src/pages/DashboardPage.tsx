@@ -18,6 +18,7 @@ import { SpotifyButton } from "@/components/auth/SpotifyButton";
 import { StatTile } from "@/components/catalog";
 import { MessageBanner } from "@/components/layout/MessageBanner";
 import helloOrb from "@/assets/hello_orb.png";
+import helloOrbDark from "@/assets/hello_orb_dark.png";
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -51,7 +52,16 @@ export function DashboardPage() {
 
       <div className="mb-8 flex flex-col items-center gap-3 py-6 text-center">
         <Orb size={170} label="Genre Orb" />
-        <img src={helloOrb} alt="Hello, my name is Genre Orb" className="w-52" />
+        <img
+          src={helloOrb}
+          alt="Hello, my name is Genre Orb"
+          className="w-52 dark:hidden"
+        />
+        <img
+          src={helloOrbDark}
+          alt="Hello, my name is Genre Orb"
+          className="hidden w-52 dark:block"
+        />
         <p className="max-w-md text-muted-foreground">
           {spotifyConnected
             ? "Browse and reorganize your music library."
