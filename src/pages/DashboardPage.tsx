@@ -93,7 +93,6 @@ export function DashboardPage() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2">
-            <Button render={<Link to="/tracks" />}>Browse tracks</Button>
             <Button variant="outline" render={<Link to="/library" />}>
               Manage library
             </Button>
