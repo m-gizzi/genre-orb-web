@@ -3,7 +3,6 @@ import { UserIcon } from "lucide-react";
 import { useArtist } from "@/hooks/useArtists";
 import { useTracks } from "@/hooks/useTracks";
 import { usePagination } from "@/hooks/usePagination";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlbumCard,
@@ -59,18 +58,12 @@ export function ArtistDetailPage() {
           {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
           {data.genres.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {data.genres.map((genre) =>
-                genre.id != null ? (
-                  <GenreChip
-                    key={genre.name}
-                    genre={{ genre_id: genre.id, name: genre.name }}
-                  />
-                ) : (
-                  <Badge key={genre.name} variant="secondary">
-                    {genre.name}
-                  </Badge>
-                )
-              )}
+              {data.genres.map((genre) => (
+                <GenreChip
+                  key={genre.name}
+                  genre={{ genre_id: genre.id, name: genre.name }}
+                />
+              ))}
             </div>
           )}
         </div>

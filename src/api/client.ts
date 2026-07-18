@@ -145,18 +145,12 @@ export interface Artist {
   name: string;
   spotify_id: string;
   image_url: string | null;
-  genres: string[];
+  genres: Genre[];
   followers: number | null;
   popularity: number | null;
 }
 
-export interface GenreRef {
-  id: number | null;
-  name: string;
-}
-
-export interface ArtistDetail extends Omit<Artist, "genres"> {
-  genres: GenreRef[];
+export interface ArtistDetail extends Artist {
   albums: Album[];
 }
 

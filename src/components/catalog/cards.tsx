@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { formatNumber } from "@/lib/format";
 
 export function ArtistCard({ artist }: { artist: Artist }) {
-  const genreText = artist.genres.join(", ");
+  const genreText = artist.genres.map((genre) => genre.name).join(", ");
   return (
     <Link to={`/artists/${artist.id}`} className="block">
       <Card className="gap-3 p-4 text-center transition-colors hover:ring-primary/40">
