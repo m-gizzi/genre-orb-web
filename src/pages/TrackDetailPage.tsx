@@ -9,8 +9,17 @@ import { formatDuration, formatNumber } from "@/lib/format";
 
 export function TrackDetailPage() {
   const { id } = useParams();
-  const query = useTrack(Number(id));
+  const trackId = Number(id);
+  const query = useTrack(trackId);
 
+  if (!Number.isFinite(trackId)) {
+    return (
+      <ErrorState
+        title="Track not found"
+        description="This track doesn't exist or isn't in your library."
+      />
+    );
+  }
   if (query.isLoading) return <Skeleton className="h-64 w-full" />;
   if (query.isError) return <ErrorState error={query.error} />;
   if (!query.data) return null;

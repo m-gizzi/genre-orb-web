@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { playlistsApi, type SearchListParams } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -15,6 +15,7 @@ export function usePlaylistsPage(params: SearchListParams = {}, enabled = true) 
     queryKey: queryKeys.playlistsPaged(params),
     queryFn: () => playlistsApi.paginated(params),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 

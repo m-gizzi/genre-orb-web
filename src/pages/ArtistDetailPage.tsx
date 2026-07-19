@@ -28,6 +28,14 @@ export function ArtistDetailPage() {
     per_page: perPage,
   });
 
+  if (!Number.isFinite(artistId)) {
+    return (
+      <ErrorState
+        title="Artist not found"
+        description="This artist doesn't exist or isn't in your library."
+      />
+    );
+  }
   if (artist.isError) return <ErrorState error={artist.error} />;
   if (artist.isLoading || !artist.data) {
     return <Skeleton className="h-64 w-full" />;

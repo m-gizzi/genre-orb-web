@@ -42,6 +42,14 @@ export function GenreDetailPage() {
     order: "desc",
   });
 
+  if (!Number.isFinite(genreId)) {
+    return (
+      <ErrorState
+        title="Genre not found"
+        description="This genre doesn't exist or isn't in your library."
+      />
+    );
+  }
   if (genre.isError) return <ErrorState error={genre.error} />;
 
   return (

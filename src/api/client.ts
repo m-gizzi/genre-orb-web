@@ -31,6 +31,14 @@ export const api = ky.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
+  hooks: {
+    beforeError: [
+      async ({ error }) => {
+        error.message = await extractApiError(error, error.message);
+        return error;
+      },
+    ],
+  },
 });
 
 export interface PaginationMeta {

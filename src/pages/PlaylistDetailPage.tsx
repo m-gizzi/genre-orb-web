@@ -22,6 +22,14 @@ export function PlaylistDetailPage() {
   const playlist = usePlaylist(playlistId);
   const tracks = usePlaylistTracks(playlistId, { page, per_page: perPage });
 
+  if (!Number.isFinite(playlistId)) {
+    return (
+      <ErrorState
+        title="Playlist not found"
+        description="This playlist doesn't exist or isn't in your library."
+      />
+    );
+  }
   if (playlist.isError) return <ErrorState error={playlist.error} />;
 
   return (

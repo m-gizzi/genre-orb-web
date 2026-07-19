@@ -7,6 +7,7 @@ interface SearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  inputProps?: React.ComponentProps<typeof Input>;
 }
 
 export function SearchInput({
@@ -14,6 +15,7 @@ export function SearchInput({
   onChange,
   placeholder = "Search…",
   className,
+  inputProps,
 }: SearchInputProps) {
   return (
     <div className={cn("relative w-full max-w-sm", className)}>
@@ -23,7 +25,8 @@ export function SearchInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="pl-8"
+        {...inputProps}
+        className={cn("pl-8", inputProps?.className)}
       />
     </div>
   );

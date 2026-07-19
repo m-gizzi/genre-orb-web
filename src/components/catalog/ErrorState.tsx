@@ -8,15 +8,19 @@ function messageFor(error: unknown): string {
 export function ErrorState({
   error,
   title = "Couldn't load this",
+  description,
 }: {
-  error: unknown;
+  error?: unknown;
   title?: string;
+  description?: string;
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 py-12 text-center">
       <AlertCircleIcon className="size-6 text-destructive" />
       <p className="font-medium">{title}</p>
-      <p className="max-w-md text-sm text-muted-foreground">{messageFor(error)}</p>
+      <p className="max-w-md text-sm text-muted-foreground">
+        {description ?? messageFor(error)}
+      </p>
     </div>
   );
 }
