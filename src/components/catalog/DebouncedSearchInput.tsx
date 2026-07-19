@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { SearchInput } from "./SearchInput";
 
@@ -17,15 +17,10 @@ export function DebouncedSearchInput({
 }) {
   const [local, setLocal] = useState(value);
   const debounced = useDebouncedValue(local, delay);
-  const first = useRef(true);
 
   useEffect(() => setLocal(value), [value]);
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    onCommit(debounced);
+    if (debounced !== value) onCommit(debounced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
@@ -14,15 +14,10 @@ export function DebouncedInput({
 } & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
   const [local, setLocal] = useState(value);
   const debounced = useDebouncedValue(local, delay);
-  const first = useRef(true);
 
   useEffect(() => setLocal(value), [value]);
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    onCommit(debounced);
+    if (debounced !== value) onCommit(debounced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
 
