@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   extractApiError,
   libraryApi,
+  TERMINAL_SYNC_STATUSES,
   type LibraryStatus,
 } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
@@ -51,6 +52,7 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
   });
 
   const hasActiveSync = statusQuery.data?.has_active_sync ?? false;
+  const sessionStatus = statusQuery.data?.current_session?.status ?? null;
   const metadataFetchedAt = statusQuery.data?.playlists_metadata_fetched_at ?? null;
   const metadataError = statusQuery.data?.playlists_metadata_error ?? null;
 
@@ -60,12 +62,16 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
 
   const wasActiveRef = useRef(false);
   useEffect(() => {
-    if (wasActiveRef.current && !hasActiveSync) {
+    const finished =
+      wasActiveRef.current &&
+      !hasActiveSync &&
+      (sessionStatus === null || TERMINAL_SYNC_STATUSES.includes(sessionStatus));
+    if (finished) {
       invalidateLibraryQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: queryKeys.artistSyncStatus });
     }
     wasActiveRef.current = hasActiveSync;
-  }, [hasActiveSync, queryClient]);
+  }, [hasActiveSync, sessionStatus, queryClient]);
 
   useEffect(() => {
     if (!fetchingMetadata) return;
@@ -107,9 +113,14 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
 
   const fetchPlaylistsMutation = useMutation({
     mutationFn: libraryApi.fetchPlaylists,
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.libraryStatus });
+      queryClient.setQueryData<LibraryStatus>(queryKeys.libraryStatus, (old) => ({
+        ...(old ?? EMPTY_STATUS),
+        playlists_metadata_error: null,
+      }));
       metadataBaselineRef.current = metadataFetchedAt;
-      metadataErrorBaselineRef.current = metadataError;
+      metadataErrorBaselineRef.current = null;
       startFetchingMetadata();
       onMessage?.({ type: "success", text: "Fetching playlists from Spotify..." });
     },

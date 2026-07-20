@@ -14,16 +14,19 @@ export function AlbumDetailPage() {
   const { id } = useParams();
   const query = useAlbum(Number(id));
 
-  if (query.isError) return <ErrorState error={query.error} />;
+  if (query.isError) {
+    return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
+  }
   if (query.isLoading || !query.data) {
     return <Skeleton className="h-64 w-full" />;
   }
 
   const album = query.data;
-  const meta = [
-    album.release_year,
-    album.total_tracks != null && `${formatNumber(album.total_tracks)} tracks`,
-  ].filter(Boolean).join(" · ");
+  const trackText =
+    album.total_tracks != null
+      ? `${formatNumber(album.saved_tracks)} of ${formatNumber(album.total_tracks)} tracks saved`
+      : `${formatNumber(album.saved_tracks)} tracks saved`;
+  const meta = [album.release_year, trackText].filter(Boolean).join(" · ");
 
   return (
     <div>

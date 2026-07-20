@@ -73,10 +73,10 @@ describe("listParamsToParams", () => {
 });
 
 describe("artist filters", () => {
-  it("parses the genre facet as a number", () => {
+  it("parses the genre facet as a string", () => {
     expect(parseArtistFilters(new URLSearchParams({ genre: "12" }))).toMatchObject({
       sort: "name",
-      genre: 12,
+      genre: "12",
     });
   });
 
@@ -101,7 +101,7 @@ describe("album filters", () => {
     expect(parseAlbumFilters(params)).toMatchObject({
       sort: "title",
       artist: "radiohead",
-      genre: 7,
+      genre: "7",
       year_min: 1990,
       year_max: 2000,
     });

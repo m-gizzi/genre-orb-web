@@ -21,11 +21,11 @@ export function SearchInput({
     <div className={cn("relative w-full max-w-sm", className)}>
       <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
+        {...inputProps}
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        {...inputProps}
         className={cn("pl-8", inputProps?.className)}
       />
     </div>

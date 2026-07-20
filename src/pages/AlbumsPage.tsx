@@ -36,7 +36,7 @@ export function AlbumsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = parseAlbumFilters(searchParams);
 
-  const genreId = filters.genre ?? NaN;
+  const genreId = filters.genre ? Number(filters.genre) : NaN;
   const genreQuery = useGenre(genreId);
 
   const query = useAlbums(filters);
@@ -79,9 +79,11 @@ export function AlbumsPage() {
           placeholder="Artist…"
         />
         <GenreAutocomplete
-          valueId={filters.genre}
+          valueId={filters.genre ? Number(filters.genre) : undefined}
           valueName={genreQuery.data?.name}
-          onSelect={(next) => applyPatch({ genre: next?.id })}
+          onSelect={(next) =>
+            applyPatch({ genre: next ? String(next.id) : undefined })
+          }
         />
         <div className="flex items-center gap-1">
           <DebouncedInput
@@ -106,7 +108,7 @@ export function AlbumsPage() {
       {query.isLoading ? (
         <CardGridSkeleton />
       ) : query.isError ? (
-        <ErrorState error={query.error} />
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : albums.length === 0 ? (
         <EmptyState title="No albums found" />
       ) : (

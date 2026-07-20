@@ -24,7 +24,10 @@ export function GenreAutocomplete({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const debounced = useDebouncedValue(query, 250);
-  const { data } = useGenres({ search: debounced || undefined, per_page: 8 });
+  const { data } = useGenres(
+    { search: debounced || undefined, per_page: 8 },
+    valueId == null
+  );
   const results = data?.data ?? [];
   const isOpen = open && query.length > 0 && results.length > 0;
 
@@ -56,11 +59,12 @@ export function GenreAutocomplete({
       case "ArrowDown":
         event.preventDefault();
         setOpen(true);
-        setActiveIndex((i) => Math.min(i + 1, results.length - 1));
+        setActiveIndex((i) => (i >= results.length - 1 ? 0 : i + 1));
         break;
       case "ArrowUp":
         event.preventDefault();
-        setActiveIndex((i) => Math.max(i - 1, 0));
+        setOpen(true);
+        setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
         break;
       case "Enter":
         if (isOpen && results[activeIndex]) {
@@ -89,6 +93,7 @@ export function GenreAutocomplete({
         inputProps={{
           role: "combobox",
           "aria-label": "Filter by genre",
+          "aria-haspopup": "listbox",
           "aria-expanded": isOpen,
           "aria-controls": LISTBOX_ID,
           "aria-autocomplete": "list",

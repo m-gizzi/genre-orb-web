@@ -11,8 +11,8 @@ vi.mock("@/api/client", () => ({
 
 describe("App", () => {
   it("renders without crashing", () => {
-    render(<App />);
-    expect(document.body).toBeInTheDocument();
+    const { container } = render(<App />);
+    expect(container).not.toBeEmptyDOMElement();
   });
 
   it("redirects unauthenticated users to the login page", async () => {

@@ -7,7 +7,7 @@ import {
   Disc3Icon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePlaylistsPage } from "@/hooks/usePlaylists";
+import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
 import { useTracks } from "@/hooks/useTracks";
 import { useArtists } from "@/hooks/useArtists";
 import { useAlbums } from "@/hooks/useAlbums";
@@ -42,9 +42,15 @@ export function DashboardPage() {
     spotifyConnected ? { per_page: 1 } : {},
     spotifyConnected
   );
-  const tracks = useTracks(spotifyConnected ? { per_page: 1 } : {});
-  const artists = useArtists(spotifyConnected ? { per_page: 1 } : {});
-  const albums = useAlbums(spotifyConnected ? { per_page: 1 } : {});
+  const liked = useLikedPlaylist(spotifyConnected);
+  const tracks = useTracks(spotifyConnected ? { per_page: 1 } : {}, spotifyConnected);
+  const artists = useArtists(spotifyConnected ? { per_page: 1 } : {}, spotifyConnected);
+  const albums = useAlbums(spotifyConnected ? { per_page: 1 } : {}, spotifyConnected);
+
+  const playlistsTotal =
+    playlists.data != null
+      ? playlists.data.meta.total + (liked.data ? 1 : 0)
+      : undefined;
 
   return (
     <div>
@@ -74,10 +80,10 @@ export function DashboardPage() {
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatTile
               label="Playlists"
-              value={playlists.data?.meta.total}
+              value={playlistsTotal}
               icon={<ListMusicIcon className="size-4" />}
               to="/playlists"
-              isLoading={playlists.isLoading}
+              isLoading={playlists.isLoading || liked.isLoading}
             />
             <StatTile
               label="Tracks"

@@ -8,13 +8,18 @@ export async function extractApiError(
   fallback = "Something went wrong"
 ): Promise<string> {
   if (error instanceof HTTPError) {
+    const cache = error as { parsedApiMessage?: string };
+    if (cache.parsedApiMessage) return cache.parsedApiMessage;
     try {
       const body = (await error.response.clone().json()) as {
         errors?: Array<{ message?: string }>;
         error?: string;
       };
       const message = body?.errors?.[0]?.message ?? body?.error;
-      if (message) return message;
+      if (message) {
+        cache.parsedApiMessage = message;
+        return message;
+      }
     } catch {
       // Response body wasn't JSON; fall back below.
     }
@@ -233,7 +238,7 @@ export interface SearchListParams extends Pagination, Sortable {
 }
 
 export interface CatalogListParams extends SearchListParams {
-  genre?: number;
+  genre?: string;
 }
 
 export interface AlbumListParams extends CatalogListParams {
@@ -248,6 +253,12 @@ export type SyncSessionStatus =
   | "completed"
   | "completed_with_errors"
   | "failed";
+
+export const TERMINAL_SYNC_STATUSES: SyncSessionStatus[] = [
+  "completed",
+  "completed_with_errors",
+  "failed",
+];
 
 export type SyncPlaylistStatus =
   | "pending"

@@ -66,7 +66,7 @@ export function GenresPage() {
       {query.isLoading ? (
         <Skeleton className="h-40 w-full" />
       ) : query.isError ? (
-        <ErrorState error={query.error} />
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : genres.length === 0 ? (
         <EmptyState title="No genres found" />
       ) : (

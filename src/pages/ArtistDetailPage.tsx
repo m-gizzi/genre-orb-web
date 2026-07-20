@@ -21,12 +21,15 @@ export function ArtistDetailPage() {
   const { page, perPage, setPage, setPerPage } = usePagination(25);
 
   const artist = useArtist(artistId);
-  const tracks = useTracks({
-    artist: String(artistId),
-    sort: "album",
-    page,
-    per_page: perPage,
-  });
+  const tracks = useTracks(
+    {
+      artist: String(artistId),
+      sort: "album",
+      page,
+      per_page: perPage,
+    },
+    Number.isFinite(artistId)
+  );
 
   if (!Number.isFinite(artistId)) {
     return (
@@ -36,7 +39,9 @@ export function ArtistDetailPage() {
       />
     );
   }
-  if (artist.isError) return <ErrorState error={artist.error} />;
+  if (artist.isError) {
+    return <ErrorState error={artist.error} onRetry={() => artist.refetch()} />;
+  }
   if (artist.isLoading || !artist.data) {
     return <Skeleton className="h-64 w-full" />;
   }
@@ -68,7 +73,7 @@ export function ArtistDetailPage() {
             <div className="mt-2 flex flex-wrap gap-1.5">
               {data.genres.map((genre) => (
                 <GenreChip
-                  key={genre.name}
+                  key={genre.id}
                   genre={{ genre_id: genre.id, name: genre.name }}
                 />
               ))}
@@ -95,7 +100,7 @@ export function ArtistDetailPage() {
         {tracks.isLoading ? (
           <TableSkeleton />
         ) : tracks.isError ? (
-          <ErrorState error={tracks.error} />
+          <ErrorState error={tracks.error} onRetry={() => tracks.refetch()} />
         ) : (tracks.data?.data.length ?? 0) === 0 ? (
           <EmptyState title="No tracks in your library for this artist" showOrb={false} />
         ) : (

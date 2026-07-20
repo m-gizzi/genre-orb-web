@@ -47,7 +47,7 @@ function parseCatalogFilters(
   defaultSort: string,
 ): CatalogListParams {
   const filters: CatalogListParams = parseListParams(params, { defaultSort });
-  if (params.get("genre")) filters.genre = Number(params.get("genre"));
+  if (params.get("genre")) filters.genre = params.get("genre")!;
   return filters;
 }
 

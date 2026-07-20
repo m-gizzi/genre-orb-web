@@ -75,7 +75,7 @@ export function PlaylistsPage() {
       {query.isLoading ? (
         <CardGridSkeleton />
       ) : query.isError ? (
-        <ErrorState error={query.error} />
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : playlists.length === 0 ? (
         filters.search ? (
           <EmptyState title="No playlists match your search" showOrb={false} />

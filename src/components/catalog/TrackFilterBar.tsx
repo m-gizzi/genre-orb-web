@@ -32,7 +32,7 @@ interface TrackFilterBarProps {
 const msToMinutes = (ms?: number) => (ms == null ? "" : String(Math.round(ms / 60000)));
 const minutesToMs = (value: string) => {
   const minutes = Number(value);
-  return value === "" || Number.isNaN(minutes) ? undefined : Math.round(minutes * 60000);
+  return value === "" || Number.isNaN(minutes) ? undefined : Math.round(minutes) * 60000;
 };
 const toNumber = (value: string) => {
   const n = Number(value);
@@ -117,6 +117,8 @@ export function TrackFilterBar({
         <DebouncedInput
           type="number"
           inputMode="numeric"
+          step="1"
+          min="0"
           placeholder="Duration ≥"
           className="w-27"
           value={msToMinutes(filters.duration_min)}
@@ -125,6 +127,8 @@ export function TrackFilterBar({
         <DebouncedInput
           type="number"
           inputMode="numeric"
+          step="1"
+          min="0"
           placeholder="Duration ≤"
           className="w-27"
           value={msToMinutes(filters.duration_max)}

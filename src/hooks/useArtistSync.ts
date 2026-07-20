@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   artistsApi,
   extractApiError,
+  TERMINAL_SYNC_STATUSES,
   type ArtistMetadataSession,
   type ArtistSyncStatus,
 } from "@/api/client";
@@ -44,6 +45,7 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
   });
 
   const hasActiveSync = statusQuery.data?.has_active_sync ?? false;
+  const sessionStatus = statusQuery.data?.current_session?.status ?? null;
 
   useEffect(() => {
     if (awaitingStart && hasActiveSync) stopAwaiting();
@@ -51,11 +53,15 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
 
   const wasActiveRef = useRef(false);
   useEffect(() => {
-    if (wasActiveRef.current && !hasActiveSync) {
+    const finished =
+      wasActiveRef.current &&
+      !hasActiveSync &&
+      (sessionStatus === null || TERMINAL_SYNC_STATUSES.includes(sessionStatus));
+    if (finished) {
       invalidateLibraryQueries(queryClient);
     }
     wasActiveRef.current = hasActiveSync;
-  }, [hasActiveSync, queryClient]);
+  }, [hasActiveSync, sessionStatus, queryClient]);
 
   const applyStartedSession = async (session: ArtistMetadataSession) => {
     await queryClient.cancelQueries({ queryKey: queryKeys.artistSyncStatus });

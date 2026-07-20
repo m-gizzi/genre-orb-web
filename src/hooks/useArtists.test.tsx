@@ -31,10 +31,10 @@ describe("useArtists", () => {
     mockedArtistsApi.list.mockResolvedValue(collection);
     const { wrapper } = makeQueryWrapper();
 
-    const { result } = renderHook(() => useArtists({ genre: 3 }), { wrapper });
+    const { result } = renderHook(() => useArtists({ genre: "3" }), { wrapper });
 
     await waitFor(() => expect(result.current.data).toBe(collection));
-    expect(mockedArtistsApi.list).toHaveBeenCalledWith({ genre: 3 });
+    expect(mockedArtistsApi.list).toHaveBeenCalledWith({ genre: "3" });
   });
 });
 

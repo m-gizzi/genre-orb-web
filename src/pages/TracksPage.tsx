@@ -80,7 +80,7 @@ export function TracksPage() {
       {query.isLoading ? (
         <TableSkeleton />
       ) : query.isError ? (
-        <ErrorState error={query.error} />
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : tracks.length === 0 ? (
         <EmptyState
           title="No tracks match"

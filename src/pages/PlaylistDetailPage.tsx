@@ -30,7 +30,9 @@ export function PlaylistDetailPage() {
       />
     );
   }
-  if (playlist.isError) return <ErrorState error={playlist.error} />;
+  if (playlist.isError) {
+    return <ErrorState error={playlist.error} onRetry={() => playlist.refetch()} />;
+  }
 
   return (
     <div>
@@ -63,7 +65,7 @@ export function PlaylistDetailPage() {
       {tracks.isLoading ? (
         <TableSkeleton />
       ) : tracks.isError ? (
-        <ErrorState error={tracks.error} />
+        <ErrorState error={tracks.error} onRetry={() => tracks.refetch()} />
       ) : (tracks.data?.data.length ?? 0) === 0 ? (
         <EmptyState
           title="No tracks in this version"

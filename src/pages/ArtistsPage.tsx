@@ -30,7 +30,7 @@ export function ArtistsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = parseArtistFilters(searchParams);
 
-  const genreId = filters.genre ?? NaN;
+  const genreId = filters.genre ? Number(filters.genre) : NaN;
   const genreQuery = useGenre(genreId);
 
   const query = useArtists(filters);
@@ -68,16 +68,18 @@ export function ArtistsPage() {
           placeholder="Search artists…"
         />
         <GenreAutocomplete
-          valueId={filters.genre}
+          valueId={filters.genre ? Number(filters.genre) : undefined}
           valueName={genreQuery.data?.name}
-          onSelect={(next) => applyPatch({ genre: next?.id })}
+          onSelect={(next) =>
+            applyPatch({ genre: next ? String(next.id) : undefined })
+          }
         />
       </div>
 
       {query.isLoading ? (
         <CardGridSkeleton />
       ) : query.isError ? (
-        <ErrorState error={query.error} />
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : artists.length === 0 ? (
         <EmptyState title="No artists found" />
       ) : (

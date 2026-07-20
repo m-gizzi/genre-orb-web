@@ -40,7 +40,9 @@ export function Pagination({
             <span>Per page</span>
             <Select
               value={String(per_page)}
-              onValueChange={(value) => onPerPageChange(Number(value))}
+              onValueChange={(value) => {
+                if (value != null) onPerPageChange(Number(value));
+              }}
             >
               <SelectTrigger size="sm" className="w-[4.5rem]">
                 <SelectValue />

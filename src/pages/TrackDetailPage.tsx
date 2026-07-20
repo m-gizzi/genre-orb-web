@@ -21,7 +21,9 @@ export function TrackDetailPage() {
     );
   }
   if (query.isLoading) return <Skeleton className="h-64 w-full" />;
-  if (query.isError) return <ErrorState error={query.error} />;
+  if (query.isError) {
+    return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
+  }
   if (!query.data) return null;
 
   const track = query.data;

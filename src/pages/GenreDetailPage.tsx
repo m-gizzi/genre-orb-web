@@ -22,25 +22,20 @@ export function GenreDetailPage() {
   const { id } = useParams();
   const genreId = Number(id);
 
+  const enabled = Number.isFinite(genreId);
   const genre = useGenre(genreId);
-  const tracks = useTracks({
-    genre: String(genreId),
-    per_page: 10,
-    sort: "popularity",
-    order: "desc",
-  });
-  const artists = useArtists({
-    genre: genreId,
-    per_page: FACET_LIMIT,
-    sort: "popularity",
-    order: "desc",
-  });
-  const albums = useAlbums({
-    genre: genreId,
-    per_page: FACET_LIMIT,
-    sort: "popularity",
-    order: "desc",
-  });
+  const tracks = useTracks(
+    { genre: String(genreId), per_page: 10, sort: "popularity", order: "desc" },
+    enabled
+  );
+  const artists = useArtists(
+    { genre: String(genreId), per_page: FACET_LIMIT, sort: "popularity", order: "desc" },
+    enabled
+  );
+  const albums = useAlbums(
+    { genre: String(genreId), per_page: FACET_LIMIT, sort: "popularity", order: "desc" },
+    enabled
+  );
 
   if (!Number.isFinite(genreId)) {
     return (
@@ -50,7 +45,9 @@ export function GenreDetailPage() {
       />
     );
   }
-  if (genre.isError) return <ErrorState error={genre.error} />;
+  if (genre.isError) {
+    return <ErrorState error={genre.error} onRetry={() => genre.refetch()} />;
+  }
 
   return (
     <div>
@@ -84,7 +81,7 @@ export function GenreDetailPage() {
         {tracks.isLoading ? (
           <TableSkeleton rows={5} />
         ) : tracks.isError ? (
-          <ErrorState error={tracks.error} />
+          <ErrorState error={tracks.error} onRetry={() => tracks.refetch()} />
         ) : (tracks.data?.data.length ?? 0) === 0 ? (
           <EmptyState title="No tracks in this genre" showOrb={false} />
         ) : (
@@ -99,6 +96,7 @@ export function GenreDetailPage() {
         isLoading={artists.isLoading}
         isError={artists.isError}
         error={artists.error}
+        onRetry={() => artists.refetch()}
         isEmpty={(artists.data?.data.length ?? 0) === 0}
       >
         {artists.data?.data.map((artist) => (
@@ -113,6 +111,7 @@ export function GenreDetailPage() {
         isLoading={albums.isLoading}
         isError={albums.isError}
         error={albums.error}
+        onRetry={() => albums.refetch()}
         isEmpty={(albums.data?.data.length ?? 0) === 0}
       >
         {albums.data?.data.map((album) => (
@@ -130,6 +129,7 @@ interface FacetSectionProps {
   isLoading: boolean;
   isError: boolean;
   error: unknown;
+  onRetry?: () => void;
   isEmpty: boolean;
   children: React.ReactNode;
 }
@@ -141,6 +141,7 @@ function FacetSection({
   isLoading,
   isError,
   error,
+  onRetry,
   isEmpty,
   children,
 }: FacetSectionProps) {
@@ -162,7 +163,7 @@ function FacetSection({
       {isLoading ? (
         <Skeleton className="h-40 w-full" />
       ) : isError ? (
-        <ErrorState error={error} />
+        <ErrorState error={error} onRetry={onRetry} />
       ) : isEmpty ? (
         <p className="text-sm text-muted-foreground">None in your library.</p>
       ) : (
