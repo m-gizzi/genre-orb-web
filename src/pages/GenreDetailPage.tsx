@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useGenre } from "@/hooks/useGenres";
 import { useTracks } from "@/hooks/useTracks";
@@ -11,12 +12,22 @@ import {
   ArtistCard,
   EmptyState,
   ErrorState,
+  QueryState,
   TableSkeleton,
   TrackTable,
 } from "@/components/catalog";
 import { formatNumber } from "@/lib/format";
 
 const FACET_LIMIT = 12;
+
+interface FacetQuery {
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  isPlaceholderData?: boolean;
+  refetch: () => unknown;
+  data?: { data: unknown[]; meta: { total: number } };
+}
 
 export function GenreDetailPage() {
   const { id } = useParams();
@@ -29,15 +40,29 @@ export function GenreDetailPage() {
     enabled
   );
   const artists = useArtists(
-    { genre: String(genreId), per_page: FACET_LIMIT, sort: "popularity", order: "desc" },
+    {
+      genre: String(genreId),
+      per_page: FACET_LIMIT,
+      sort: "popularity",
+      order: "desc",
+    },
     enabled
   );
   const albums = useAlbums(
-    { genre: String(genreId), per_page: FACET_LIMIT, sort: "popularity", order: "desc" },
+    {
+      genre: String(genreId),
+      per_page: FACET_LIMIT,
+      sort: "popularity",
+      order: "desc",
+    },
     enabled
   );
 
-  if (!Number.isFinite(genreId)) {
+  const trackRows = tracks.data?.data ?? [];
+  const artistRows = artists.data?.data ?? [];
+  const albumRows = albums.data?.data ?? [];
+
+  if (!enabled) {
     return (
       <ErrorState
         title="Genre not found"
@@ -60,91 +85,77 @@ export function GenreDetailPage() {
         />
       )}
 
-      <section className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-heading text-lg font-medium">
-            Tracks
-            {tracks.data && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                {formatNumber(tracks.data.meta.total)}
-              </span>
-            )}
-          </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            render={<Link to={`/tracks?genre=${genreId}`} />}
-          >
-            Browse all
-          </Button>
-        </div>
-        {tracks.isLoading ? (
-          <TableSkeleton rows={5} />
-        ) : tracks.isError ? (
-          <ErrorState error={tracks.error} onRetry={() => tracks.refetch()} />
-        ) : (tracks.data?.data.length ?? 0) === 0 ? (
-          <EmptyState title="No tracks in this genre" showOrb={false} />
-        ) : (
-          <TrackTable tracks={tracks.data!.data} />
-        )}
-      </section>
+      <FacetSection
+        title="Tracks"
+        query={tracks}
+        browseTo={`/tracks?genre=${genreId}`}
+        skeleton={<TableSkeleton rows={5} />}
+        isEmpty={trackRows.length === 0}
+        empty={<EmptyState title="No tracks in this genre" showOrb={false} />}
+      >
+        <TrackTable tracks={trackRows} />
+      </FacetSection>
 
       <FacetSection
         title="Artists"
-        total={artists.data?.meta.total}
+        query={artists}
         browseTo={`/artists?genre=${genreId}`}
-        isLoading={artists.isLoading}
-        isError={artists.isError}
-        error={artists.error}
-        onRetry={() => artists.refetch()}
-        isEmpty={(artists.data?.data.length ?? 0) === 0}
+        isEmpty={artistRows.length === 0}
       >
-        {artists.data?.data.map((artist) => (
-          <ArtistCard key={artist.id} artist={artist} />
-        ))}
+        <CardGrid>
+          {artistRows.map((artist) => (
+            <ArtistCard key={artist.id} artist={artist} />
+          ))}
+        </CardGrid>
       </FacetSection>
 
       <FacetSection
         title="Albums"
-        total={albums.data?.meta.total}
+        query={albums}
         browseTo={`/albums?genre=${genreId}`}
-        isLoading={albums.isLoading}
-        isError={albums.isError}
-        error={albums.error}
-        onRetry={() => albums.refetch()}
-        isEmpty={(albums.data?.data.length ?? 0) === 0}
+        isEmpty={albumRows.length === 0}
       >
-        {albums.data?.data.map((album) => (
-          <AlbumCard key={album.id} album={album} />
-        ))}
+        <CardGrid>
+          {albumRows.map((album) => (
+            <AlbumCard key={album.id} album={album} />
+          ))}
+        </CardGrid>
       </FacetSection>
+    </div>
+  );
+}
+
+function CardGrid({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      {children}
     </div>
   );
 }
 
 interface FacetSectionProps {
   title: string;
-  total?: number;
+  query: FacetQuery;
   browseTo: string;
-  isLoading: boolean;
-  isError: boolean;
-  error: unknown;
-  onRetry?: () => void;
   isEmpty: boolean;
-  children: React.ReactNode;
+  skeleton?: ReactNode;
+  empty?: ReactNode;
+  children: ReactNode;
 }
 
 function FacetSection({
   title,
-  total,
+  query,
   browseTo,
-  isLoading,
-  isError,
-  error,
-  onRetry,
   isEmpty,
+  skeleton = <Skeleton className="h-40 w-full" />,
+  empty = (
+    <p className="text-sm text-muted-foreground">None in your library.</p>
+  ),
   children,
 }: FacetSectionProps) {
+  const total = query.data?.meta.total;
+
   return (
     <section className="mb-8">
       <div className="mb-3 flex items-center justify-between">
@@ -160,17 +171,14 @@ function FacetSection({
           Browse all
         </Button>
       </div>
-      {isLoading ? (
-        <Skeleton className="h-40 w-full" />
-      ) : isError ? (
-        <ErrorState error={error} onRetry={onRetry} />
-      ) : isEmpty ? (
-        <p className="text-sm text-muted-foreground">None in your library.</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-          {children}
-        </div>
-      )}
+      <QueryState
+        query={query}
+        skeleton={skeleton}
+        isEmpty={isEmpty}
+        empty={empty}
+      >
+        {children}
+      </QueryState>
     </section>
   );
 }

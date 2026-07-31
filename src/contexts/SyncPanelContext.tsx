@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -15,9 +16,11 @@ const STORAGE_KEY = "genre-orb-sync-panel";
 interface SyncPanelContextType {
   state: PanelState;
   isExpanded: boolean;
+  isSuppressed: boolean;
   expand: () => void;
   collapse: () => void;
   toggle: () => void;
+  claimSyncDisplay: () => () => void;
 }
 
 const SyncPanelContext = createContext<SyncPanelContextType | null>(null);
@@ -31,6 +34,7 @@ function readStoredState(): PanelState {
 
 export function SyncPanelProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PanelState>(readStoredState);
+  const [claims, setClaims] = useState(0);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, state);
@@ -43,9 +47,22 @@ export function SyncPanelProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const claimSyncDisplay = useCallback(() => {
+    setClaims((prev) => prev + 1);
+    return () => setClaims((prev) => prev - 1);
+  }, []);
+
   const value = useMemo<SyncPanelContextType>(
-    () => ({ state, isExpanded: state === "expanded", expand, collapse, toggle }),
-    [state, expand, collapse, toggle]
+    () => ({
+      state,
+      isExpanded: state === "expanded",
+      isSuppressed: claims > 0,
+      expand,
+      collapse,
+      toggle,
+      claimSyncDisplay,
+    }),
+    [state, claims, expand, collapse, toggle, claimSyncDisplay]
   );
 
   return (
@@ -61,4 +78,9 @@ export function useSyncPanel() {
     throw new Error("useSyncPanel must be used within a SyncPanelProvider");
   }
   return context;
+}
+
+export function useOwnsSyncDisplay() {
+  const { claimSyncDisplay } = useSyncPanel();
+  useLayoutEffect(() => claimSyncDisplay(), [claimSyncDisplay]);
 }

@@ -8,18 +8,13 @@ export async function extractApiError(
   fallback = "Something went wrong"
 ): Promise<string> {
   if (error instanceof HTTPError) {
-    const cache = error as { parsedApiMessage?: string };
-    if (cache.parsedApiMessage) return cache.parsedApiMessage;
     try {
       const body = (await error.response.clone().json()) as {
         errors?: Array<{ message?: string }>;
         error?: string;
       };
       const message = body?.errors?.[0]?.message ?? body?.error;
-      if (message) {
-        cache.parsedApiMessage = message;
-        return message;
-      }
+      if (message) return message;
     } catch {
       // Response body wasn't JSON; fall back below.
     }
@@ -27,6 +22,12 @@ export async function extractApiError(
   }
   if (error instanceof Error && error.message) return error.message;
   return fallback;
+}
+export function apiErrorMessage(
+  error: unknown,
+  fallback = "Something went wrong"
+): string {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export const api = ky.create({
@@ -198,13 +199,16 @@ export interface PlaylistDetail extends Playlist {
   current_version: PlaylistCurrentVersion | null;
 }
 
-export type TrackSort =
-  | "title"
-  | "artist"
-  | "album"
-  | "year"
-  | "popularity"
-  | "duration";
+export const TRACK_SORTS = [
+  "title",
+  "artist",
+  "album",
+  "year",
+  "popularity",
+  "duration",
+] as const;
+
+export type TrackSort = (typeof TRACK_SORTS)[number];
 
 export interface TrackFilters {
   genre?: string;
@@ -254,7 +258,7 @@ export type SyncSessionStatus =
   | "completed_with_errors"
   | "failed";
 
-export const TERMINAL_SYNC_STATUSES: SyncSessionStatus[] = [
+export const TERMINAL_SYNC_STATUSES: readonly SyncSessionStatus[] = [
   "completed",
   "completed_with_errors",
   "failed",

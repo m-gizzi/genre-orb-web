@@ -23,8 +23,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
 });
 
-export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "Never";
+export function formatDate(
+  iso: string | null | undefined,
+  fallback = "—"
+): string {
+  if (!iso) return fallback;
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? "Never" : dateFormatter.format(date);
+  return Number.isNaN(date.getTime()) ? fallback : dateFormatter.format(date);
 }

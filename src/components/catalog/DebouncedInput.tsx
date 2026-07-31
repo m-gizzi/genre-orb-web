@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useDebouncedCommit } from "@/hooks/useDebouncedCommit";
 
 export function DebouncedInput({
   value,
@@ -12,14 +11,9 @@ export function DebouncedInput({
   onCommit: (value: string) => void;
   delay?: number;
 } & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
-  const [local, setLocal] = useState(value);
-  const debounced = useDebouncedValue(local, delay);
+  const [local, setLocal] = useDebouncedCommit(value, onCommit, delay);
 
-  useEffect(() => setLocal(value), [value]);
-  useEffect(() => {
-    if (debounced !== value) onCommit(debounced);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced]);
-
-  return <Input {...props} value={local} onChange={(e) => setLocal(e.target.value)} />;
+  return (
+    <Input {...props} value={local} onChange={(e) => setLocal(e.target.value)} />
+  );
 }

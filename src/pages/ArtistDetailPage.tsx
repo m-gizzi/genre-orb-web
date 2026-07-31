@@ -10,6 +10,7 @@ import {
   ErrorState,
   GenreChip,
   Pagination,
+  QueryState,
   TableSkeleton,
   TrackTable,
 } from "@/components/catalog";
@@ -30,6 +31,7 @@ export function ArtistDetailPage() {
     },
     Number.isFinite(artistId)
   );
+  const trackRows = tracks.data?.data ?? [];
 
   if (!Number.isFinite(artistId)) {
     return (
@@ -97,23 +99,27 @@ export function ArtistDetailPage() {
 
       <section>
         <h2 className="mb-3 font-heading text-lg font-medium">Tracks</h2>
-        {tracks.isLoading ? (
-          <TableSkeleton />
-        ) : tracks.isError ? (
-          <ErrorState error={tracks.error} onRetry={() => tracks.refetch()} />
-        ) : (tracks.data?.data.length ?? 0) === 0 ? (
-          <EmptyState title="No tracks in your library for this artist" showOrb={false} />
-        ) : (
-          <>
-            <TrackTable tracks={tracks.data!.data} />
+        <QueryState
+          query={tracks}
+          skeleton={<TableSkeleton />}
+          isEmpty={trackRows.length === 0}
+          empty={
+            <EmptyState
+              title="No tracks in your library for this artist"
+              showOrb={false}
+            />
+          }
+        >
+          <TrackTable tracks={trackRows} />
+          {tracks.data && (
             <Pagination
-              meta={tracks.data!.meta}
+              meta={tracks.data.meta}
               label="tracks"
               onPageChange={setPage}
               onPerPageChange={setPerPage}
             />
-          </>
-        )}
+          )}
+        </QueryState>
       </section>
     </div>
   );

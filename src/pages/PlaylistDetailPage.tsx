@@ -9,6 +9,7 @@ import {
   ErrorState,
   Pagination,
   PlaylistSyncSwitch,
+  QueryState,
   TableSkeleton,
   TrackTable,
 } from "@/components/catalog";
@@ -21,6 +22,7 @@ export function PlaylistDetailPage() {
 
   const playlist = usePlaylist(playlistId);
   const tracks = usePlaylistTracks(playlistId, { page, per_page: perPage });
+  const trackRows = tracks.data?.data ?? [];
 
   if (!Number.isFinite(playlistId)) {
     return (
@@ -48,7 +50,7 @@ export function PlaylistDetailPage() {
               )}
             </span>
           }
-          description={`${formatNumber(playlist.data.track_count)} tracks · synced ${formatDate(playlist.data.last_synced_at)}`}
+          description={`${formatNumber(playlist.data.track_count)} tracks · synced ${formatDate(playlist.data.last_synced_at, "Never")}`}
           actions={
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               Sync
@@ -62,26 +64,27 @@ export function PlaylistDetailPage() {
         />
       )}
 
-      {tracks.isLoading ? (
-        <TableSkeleton />
-      ) : tracks.isError ? (
-        <ErrorState error={tracks.error} onRetry={() => tracks.refetch()} />
-      ) : (tracks.data?.data.length ?? 0) === 0 ? (
-        <EmptyState
-          title="No tracks in this version"
-          description="This playlist hasn't been synced yet, or its current version is empty."
-        />
-      ) : (
-        <>
-          <TrackTable tracks={tracks.data!.data} numbering="index" />
+      <QueryState
+        query={tracks}
+        skeleton={<TableSkeleton />}
+        isEmpty={trackRows.length === 0}
+        empty={
+          <EmptyState
+            title="No tracks in this version"
+            description="This playlist hasn't been synced yet, or its current version is empty."
+          />
+        }
+      >
+        <TrackTable tracks={trackRows} numbering="index" />
+        {tracks.data && (
           <Pagination
-            meta={tracks.data!.meta}
+            meta={tracks.data.meta}
             label="tracks"
             onPageChange={setPage}
             onPerPageChange={setPerPage}
           />
-        </>
-      )}
+        )}
+      </QueryState>
     </div>
   );
 }

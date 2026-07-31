@@ -1,20 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
-
-const CATALOG_ROOTS = [
-  ["playlists"],
-  ["playlist"],
-  ["tracks"],
-  ["track"],
-  ["artists"],
-  ["artist"],
-  ["albums"],
-  ["album"],
-  ["genres"],
-  ["genre"],
-] as const;
+import { CATALOG_QUERY_ROOTS } from "@/lib/queryKeys";
 
 export function invalidateLibraryQueries(queryClient: QueryClient) {
-  for (const key of CATALOG_ROOTS) {
-    queryClient.invalidateQueries({ queryKey: key });
+  for (const root of CATALOG_QUERY_ROOTS) {
+    queryClient.invalidateQueries({ queryKey: [root] });
   }
 }

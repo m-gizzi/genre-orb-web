@@ -8,22 +8,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface SortControlProps {
-  sort: string;
+interface SortControlProps<S extends string> {
+  sort: S;
   order: "asc" | "desc";
-  options: Record<string, string>;
-  onSortChange: (sort: string) => void;
+  options: Record<S, string>;
+  onSortChange: (sort: S) => void;
   onOrderChange: (order: "asc" | "desc") => void;
 }
 
-export function SortControl({
+export function SortControl<S extends string>({
   sort,
   order,
   options,
   onSortChange,
   onOrderChange,
-}: SortControlProps) {
-  const keys = Object.keys(options);
+}: SortControlProps<S>) {
+  const keys = Object.keys(options) as S[];
   const toggle = () => onOrderChange(order === "desc" ? "asc" : "desc");
 
   return (
@@ -32,7 +32,7 @@ export function SortControl({
         <Select
           items={options}
           value={sort}
-          onValueChange={(value) => onSortChange(value ?? sort)}
+          onValueChange={(value) => onSortChange((value as S | null) ?? sort)}
         >
           <SelectTrigger className="w-[9rem]">
             <SelectValue />

@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { ArtistMetadataSession, SyncSession } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLibrarySync } from "@/hooks/useLibrarySync";
@@ -15,27 +10,35 @@ import {
 } from "@/hooks/useTransientMessage";
 import { SYNC_NOTICE_TIMEOUT_MS } from "@/lib/config";
 
-interface SyncStatusContextType {
-  visibleLibrarySession: SyncSession | null;
-  hasActiveLibrarySync: boolean;
-  librarySyncError: boolean;
-  startLibrarySync: () => void;
-  isStartingLibrarySync: boolean;
+interface LibrarySyncState {
+  visibleSession: SyncSession | null;
+  hasActiveSync: boolean;
+  isError: boolean;
+  start: () => void;
+  isStarting: boolean;
   fetchPlaylists: () => void;
   isFetchingPlaylists: boolean;
-  dismissLibrarySession: () => void;
-  visibleArtistSession: ArtistMetadataSession | null;
-  hasActiveArtistSync: boolean;
-  artistSyncError: boolean;
+  dismissSession: () => void;
+}
+
+interface ArtistSyncState {
+  visibleSession: ArtistMetadataSession | null;
+  hasActiveSync: boolean;
+  isError: boolean;
   artistsTotal: number;
   artistsSynced: number;
   hasArtistsToSync: boolean;
-  startArtistSync: () => void;
-  isStartingArtistSync: boolean;
-  resyncAllArtists: () => void;
-  isResyncingArtists: boolean;
-  refetchArtistStatus: () => void;
-  dismissArtistSession: () => void;
+  start: () => void;
+  isStarting: boolean;
+  resyncAll: () => void;
+  isResyncing: boolean;
+  refetchStatus: () => void;
+  dismissSession: () => void;
+}
+
+interface SyncStatusContextType {
+  library: LibrarySyncState;
+  artist: ArtistSyncState;
   message: TransientMessage | null;
   show: (message: TransientMessage) => void;
 }
@@ -48,67 +51,75 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
 
   const { message, show } = useTransientMessage();
 
-  const library = useLibrarySync({ enabled, onMessage: show });
-  const artist = useArtistSync({ enabled, onMessage: show });
+  const librarySync = useLibrarySync({ enabled, onMessage: show });
+  const artistSync = useArtistSync({ enabled, onMessage: show });
 
   const [visibleLibrarySession, dismissLibrarySession] = useAutoDismissSession(
-    library.currentSession,
+    librarySync.currentSession,
     SYNC_NOTICE_TIMEOUT_MS
   );
   const [visibleArtistSession, dismissArtistSession] = useAutoDismissSession(
-    artist.currentSession,
+    artistSync.currentSession,
     SYNC_NOTICE_TIMEOUT_MS
   );
 
-  const value = useMemo<SyncStatusContextType>(
+  const library = useMemo<LibrarySyncState>(
     () => ({
-      visibleLibrarySession,
-      hasActiveLibrarySync: library.hasActiveSync,
-      librarySyncError: library.isError,
-      startLibrarySync: library.sync,
-      isStartingLibrarySync: library.isSyncing,
-      fetchPlaylists: library.fetchPlaylists,
-      isFetchingPlaylists: library.isFetchingPlaylists,
-      dismissLibrarySession,
-      visibleArtistSession,
-      hasActiveArtistSync: artist.hasActiveSync,
-      artistSyncError: artist.isError,
-      artistsTotal: artist.artistsTotal,
-      artistsSynced: artist.artistsSynced,
-      hasArtistsToSync: artist.hasArtistsToSync,
-      startArtistSync: artist.sync,
-      isStartingArtistSync: artist.isSyncing,
-      resyncAllArtists: artist.resyncAll,
-      isResyncingArtists: artist.isResyncing,
-      refetchArtistStatus: artist.refetch,
-      dismissArtistSession,
-      message,
-      show,
+      visibleSession: visibleLibrarySession,
+      hasActiveSync: librarySync.hasActiveSync,
+      isError: librarySync.isError,
+      start: librarySync.sync,
+      isStarting: librarySync.isSyncing,
+      fetchPlaylists: librarySync.fetchPlaylists,
+      isFetchingPlaylists: librarySync.isFetchingPlaylists,
+      dismissSession: dismissLibrarySession,
     }),
     [
       visibleLibrarySession,
-      library.hasActiveSync,
-      library.isError,
-      library.sync,
-      library.isSyncing,
-      library.fetchPlaylists,
-      library.isFetchingPlaylists,
+      librarySync.hasActiveSync,
+      librarySync.isError,
+      librarySync.sync,
+      librarySync.isSyncing,
+      librarySync.fetchPlaylists,
+      librarySync.isFetchingPlaylists,
       dismissLibrarySession,
-      visibleArtistSession,
-      artist.hasActiveSync,
-      artist.isError,
-      artist.artistsTotal,
-      artist.artistsSynced,
-      artist.hasArtistsToSync,
-      artist.sync,
-      artist.isSyncing,
-      artist.resyncAll,
-      artist.isResyncing,
-      artist.refetch,
-      dismissArtistSession,
-      message,
-      show,
     ]
+  );
+
+  const artist = useMemo<ArtistSyncState>(
+    () => ({
+      visibleSession: visibleArtistSession,
+      hasActiveSync: artistSync.hasActiveSync,
+      isError: artistSync.isError,
+      artistsTotal: artistSync.artistsTotal,
+      artistsSynced: artistSync.artistsSynced,
+      hasArtistsToSync: artistSync.hasArtistsToSync,
+      start: artistSync.sync,
+      isStarting: artistSync.isSyncing,
+      resyncAll: artistSync.resyncAll,
+      isResyncing: artistSync.isResyncing,
+      refetchStatus: artistSync.refetch,
+      dismissSession: dismissArtistSession,
+    }),
+    [
+      visibleArtistSession,
+      artistSync.hasActiveSync,
+      artistSync.isError,
+      artistSync.artistsTotal,
+      artistSync.artistsSynced,
+      artistSync.hasArtistsToSync,
+      artistSync.sync,
+      artistSync.isSyncing,
+      artistSync.resyncAll,
+      artistSync.isResyncing,
+      artistSync.refetch,
+      dismissArtistSession,
+    ]
+  );
+
+  const value = useMemo<SyncStatusContextType>(
+    () => ({ library, artist, message, show }),
+    [library, artist, message, show]
   );
 
   return (

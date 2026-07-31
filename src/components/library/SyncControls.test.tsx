@@ -17,31 +17,39 @@ const mockedUseLikedPlaylist = vi.mocked(useLikedPlaylist);
 
 type SyncStatus = ReturnType<typeof useSyncStatus>;
 
-function status(overrides: Partial<SyncStatus> = {}): SyncStatus {
+function status(overrides: {
+  library?: Partial<SyncStatus["library"]>;
+  artist?: Partial<SyncStatus["artist"]>;
+} = {}): SyncStatus {
   return {
-    visibleLibrarySession: null,
-    hasActiveLibrarySync: false,
-    librarySyncError: false,
-    startLibrarySync: vi.fn(),
-    isStartingLibrarySync: false,
-    fetchPlaylists: vi.fn(),
-    isFetchingPlaylists: false,
-    dismissLibrarySession: vi.fn(),
-    visibleArtistSession: null,
-    hasActiveArtistSync: false,
-    artistSyncError: false,
-    artistsTotal: 10,
-    artistsSynced: 4,
-    hasArtistsToSync: true,
-    startArtistSync: vi.fn(),
-    isStartingArtistSync: false,
-    resyncAllArtists: vi.fn(),
-    isResyncingArtists: false,
-    refetchArtistStatus: vi.fn(),
-    dismissArtistSession: vi.fn(),
+    library: {
+      visibleSession: null,
+      hasActiveSync: false,
+      isError: false,
+      start: vi.fn(),
+      isStarting: false,
+      fetchPlaylists: vi.fn(),
+      isFetchingPlaylists: false,
+      dismissSession: vi.fn(),
+      ...overrides.library,
+    },
+    artist: {
+      visibleSession: null,
+      hasActiveSync: false,
+      isError: false,
+      artistsTotal: 10,
+      artistsSynced: 4,
+      hasArtistsToSync: true,
+      start: vi.fn(),
+      isStarting: false,
+      resyncAll: vi.fn(),
+      isResyncing: false,
+      refetchStatus: vi.fn(),
+      dismissSession: vi.fn(),
+      ...overrides.artist,
+    },
     message: null,
     show: vi.fn(),
-    ...overrides,
   };
 }
 
@@ -62,7 +70,7 @@ describe("SyncControls", () => {
   afterEach(() => vi.clearAllMocks());
 
   it("hides the artist section when the user has no artists yet", () => {
-    mockedUseSyncStatus.mockReturnValue(status({ artistsTotal: 0, artistsSynced: 0 }));
+    mockedUseSyncStatus.mockReturnValue(status({ artist: { artistsTotal: 0, artistsSynced: 0 } }));
     setPlaylists([]);
 
     render(<SyncControls enabled />);
@@ -88,7 +96,7 @@ describe("SyncControls", () => {
 
   it("disables Sync Genres and confirms completion once every artist is synced", () => {
     mockedUseSyncStatus.mockReturnValue(
-      status({ artistsSynced: 10, hasArtistsToSync: false })
+      status({ artist: { artistsSynced: 10, hasArtistsToSync: false } })
     );
     setPlaylists([]);
 
@@ -126,7 +134,7 @@ describe("SyncControls", () => {
 
   it("surfaces an artist status error with a retry", () => {
     const refetchArtistStatus = vi.fn();
-    mockedUseSyncStatus.mockReturnValue(status({ artistSyncError: true, refetchArtistStatus }));
+    mockedUseSyncStatus.mockReturnValue(status({ artist: { isError: true, refetchStatus: refetchArtistStatus } }));
     setPlaylists([]);
 
     render(<SyncControls enabled />);

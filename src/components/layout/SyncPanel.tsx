@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
 import { PanelRightCloseIcon, PanelRightOpenIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SyncActivity } from "@/components/library";
@@ -8,16 +7,8 @@ import { useSyncStatus } from "@/contexts/SyncStatusContext";
 import { cn } from "@/lib/utils";
 
 export function SyncPanel() {
-  const { pathname } = useLocation();
-  const { isExpanded, expand, collapse } = useSyncPanel();
-  const {
-    visibleLibrarySession,
-    visibleArtistSession,
-    hasActiveLibrarySync,
-    hasActiveArtistSync,
-    dismissLibrarySession,
-    dismissArtistSession,
-  } = useSyncStatus();
+  const { isExpanded, isSuppressed, expand, collapse } = useSyncPanel();
+  const { library, artist } = useSyncStatus();
 
   const expandBtnRef = useRef<HTMLButtonElement>(null);
   const collapseBtnRef = useRef<HTMLButtonElement>(null);
@@ -32,9 +23,9 @@ export function SyncPanel() {
     else expandBtnRef.current?.focus();
   }, [isExpanded]);
 
-  if (pathname === "/library") return null;
+  if (isSuppressed) return null;
 
-  const hasActiveSync = hasActiveLibrarySync || hasActiveArtistSync;
+  const hasActiveSync = library.hasActiveSync || artist.hasActiveSync;
 
   return (
     <aside
@@ -66,10 +57,10 @@ export function SyncPanel() {
           >
             <SyncActivity
               variant="panel"
-              librarySession={visibleLibrarySession}
-              artistSession={visibleArtistSession}
-              onDismissLibrary={dismissLibrarySession}
-              onDismissArtist={dismissArtistSession}
+              librarySession={library.visibleSession}
+              artistSession={artist.visibleSession}
+              onDismissLibrary={library.dismissSession}
+              onDismissArtist={artist.dismissSession}
             />
           </div>
         </>

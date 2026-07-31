@@ -7,6 +7,7 @@ import {
   Disc3Icon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
 import { useTracks } from "@/hooks/useTracks";
 import { useArtists } from "@/hooks/useArtists";
@@ -22,6 +23,7 @@ import helloOrbDark from "@/assets/hello_orb_dark.png";
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const { message, showSuccess, showError } = useTransientMessage();
@@ -38,14 +40,12 @@ export function DashboardPage() {
     if (state) navigate(location.pathname, { replace: true, state: null });
   }, [location.state, location.pathname, navigate, showSuccess, showError]);
 
-  const playlists = usePlaylistsPage(
-    spotifyConnected ? { per_page: 1 } : {},
-    spotifyConnected
-  );
+  const countOnly = { per_page: 1 };
+  const playlists = usePlaylistsPage(countOnly, spotifyConnected);
   const liked = useLikedPlaylist(spotifyConnected);
-  const tracks = useTracks(spotifyConnected ? { per_page: 1 } : {}, spotifyConnected);
-  const artists = useArtists(spotifyConnected ? { per_page: 1 } : {}, spotifyConnected);
-  const albums = useAlbums(spotifyConnected ? { per_page: 1 } : {}, spotifyConnected);
+  const tracks = useTracks(countOnly, spotifyConnected);
+  const artists = useArtists(countOnly, spotifyConnected);
+  const albums = useAlbums(countOnly, spotifyConnected);
 
   const playlistsTotal =
     playlists.data != null
@@ -59,14 +59,9 @@ export function DashboardPage() {
       <div className="mb-8 flex flex-col items-center gap-3 py-6 text-center">
         <Orb size={170} label="Genre Orb" />
         <img
-          src={helloOrb}
+          src={theme === "dark" ? helloOrbDark : helloOrb}
           alt="Hello, my name is Genre Orb"
-          className="w-52 dark:hidden"
-        />
-        <img
-          src={helloOrbDark}
-          alt="Hello, my name is Genre Orb"
-          className="hidden w-52 dark:block"
+          className="w-52"
         />
         <p className="max-w-md text-muted-foreground">
           {spotifyConnected

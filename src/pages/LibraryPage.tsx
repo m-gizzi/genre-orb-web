@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSyncStatus } from "@/contexts/SyncStatusContext";
+import { useOwnsSyncDisplay } from "@/contexts/SyncPanelContext";
 import { spotifyApi } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -13,14 +14,9 @@ import { EmptyState } from "@/components/catalog";
 export function LibraryPage() {
   const { user, refreshUser } = useAuth();
   const queryClient = useQueryClient();
-  const {
-    message,
-    show,
-    visibleLibrarySession,
-    visibleArtistSession,
-    dismissLibrarySession,
-    dismissArtistSession,
-  } = useSyncStatus();
+  const { message, show, library, artist } = useSyncStatus();
+
+  useOwnsSyncDisplay();
 
   const spotifyReady = !!user?.spotify_connected;
 
@@ -54,10 +50,10 @@ export function LibraryPage() {
           <SyncControls enabled={spotifyReady} />
           <SyncActivity
             variant="inline"
-            librarySession={visibleLibrarySession}
-            artistSession={visibleArtistSession}
-            onDismissLibrary={dismissLibrarySession}
-            onDismissArtist={dismissArtistSession}
+            librarySession={library.visibleSession}
+            artistSession={artist.visibleSession}
+            onDismissLibrary={library.dismissSession}
+            onDismissArtist={artist.dismissSession}
           />
         </div>
       ) : (

@@ -1,17 +1,16 @@
-import { useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
-import type { TrackFilters, TrackSort } from "@/api/client";
+import type { TrackSort } from "@/api/client";
 import {
   parseTrackFilters,
   trackFiltersToParams,
 } from "@/lib/trackFilterParams";
+import { useUrlListParams } from "@/hooks/useUrlListParams";
 import { useTracks } from "@/hooks/useTracks";
 import { useGenre } from "@/hooks/useGenres";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   EmptyState,
-  ErrorState,
   Pagination,
+  QueryState,
   SortControl,
   TableSkeleton,
   TrackFilterBar,
@@ -28,28 +27,15 @@ const SORT_LABELS: Record<TrackSort, string> = {
 };
 
 export function TracksPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const filters = parseTrackFilters(searchParams);
+  const { filters, applyPatch, clear } = useUrlListParams(
+    parseTrackFilters,
+    trackFiltersToParams
+  );
 
   const genreId = filters.genre ? Number(filters.genre) : NaN;
   const genreQuery = useGenre(genreId);
 
   const query = useTracks(filters);
-
-  const applyPatch = useCallback(
-    (patch: Partial<TrackFilters>) => {
-      const next = { ...parseTrackFilters(searchParams), ...patch };
-      if (!("page" in patch)) next.page = 1;
-      setSearchParams(trackFiltersToParams(next), { replace: true });
-    },
-    [searchParams, setSearchParams]
-  );
-
-  const clear = useCallback(
-    () => setSearchParams({}, { replace: true }),
-    [setSearchParams]
-  );
-
   const tracks = query.data?.data ?? [];
 
   return (
@@ -59,10 +45,10 @@ export function TracksPage() {
         description="Filter and sort every track in your synced library."
         actions={
           <SortControl
-            sort={filters.sort ?? "title"}
-            order={filters.order ?? "asc"}
+            sort={filters.sort}
+            order={filters.order}
             options={SORT_LABELS}
-            onSortChange={(sort) => applyPatch({ sort: sort as TrackSort })}
+            onSortChange={(sort) => applyPatch({ sort })}
             onOrderChange={(order) => applyPatch({ order })}
           />
         }
@@ -77,28 +63,27 @@ export function TracksPage() {
         />
       </div>
 
-      {query.isLoading ? (
-        <TableSkeleton />
-      ) : query.isError ? (
-        <ErrorState error={query.error} onRetry={() => query.refetch()} />
-      ) : tracks.length === 0 ? (
-        <EmptyState
-          title="No tracks match"
-          description="Try loosening your filters, or sync more playlists from the Library page."
-        />
-      ) : (
-        <>
-          <TrackTable tracks={tracks} />
-          {query.data && (
-            <Pagination
-              meta={query.data.meta}
-              label="tracks"
-              onPageChange={(page) => applyPatch({ page })}
-              onPerPageChange={(per_page) => applyPatch({ per_page })}
-            />
-          )}
-        </>
-      )}
+      <QueryState
+        query={query}
+        skeleton={<TableSkeleton />}
+        isEmpty={tracks.length === 0}
+        empty={
+          <EmptyState
+            title="No tracks match"
+            description="Try loosening your filters, or sync more playlists from the Library page."
+          />
+        }
+      >
+        <TrackTable tracks={tracks} />
+        {query.data && (
+          <Pagination
+            meta={query.data.meta}
+            label="tracks"
+            onPageChange={(page) => applyPatch({ page })}
+            onPerPageChange={(per_page) => applyPatch({ per_page })}
+          />
+        )}
+      </QueryState>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  extractApiError,
+  apiErrorMessage,
   libraryApi,
   TERMINAL_SYNC_STATUSES,
   type LibraryStatus,
@@ -106,8 +106,8 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
       startAwaiting();
       onMessage?.({ type: "success", text: "Sync started!" });
     },
-    onError: async (error) => {
-      onMessage?.({ type: "error", text: await extractApiError(error) });
+    onError: (error) => {
+      onMessage?.({ type: "error", text: apiErrorMessage(error) });
     },
   });
 
@@ -124,8 +124,8 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
       startFetchingMetadata();
       onMessage?.({ type: "success", text: "Fetching playlists from Spotify..." });
     },
-    onError: async (error) => {
-      onMessage?.({ type: "error", text: await extractApiError(error) });
+    onError: (error) => {
+      onMessage?.({ type: "error", text: apiErrorMessage(error) });
     },
   });
 

@@ -16,7 +16,7 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
   label?: string;
   onPerPageChange?: (perPage: number) => void;
-  perPageOptions?: number[];
+  perPageOptions?: readonly number[];
 }
 
 export function Pagination({

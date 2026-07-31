@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { minutesToMs, msToMinutes, toNumber } from "@/lib/parse";
 import { DebouncedInput } from "./DebouncedInput";
 import { DebouncedSearchInput } from "./DebouncedSearchInput";
 import { GenreAutocomplete } from "./GenreAutocomplete";
@@ -28,16 +29,6 @@ interface TrackFilterBarProps {
   onChange: (patch: Partial<TrackFilters>) => void;
   onClear: () => void;
 }
-
-const msToMinutes = (ms?: number) => (ms == null ? "" : String(Math.round(ms / 60000)));
-const minutesToMs = (value: string) => {
-  const minutes = Number(value);
-  return value === "" || Number.isNaN(minutes) ? undefined : Math.round(minutes) * 60000;
-};
-const toNumber = (value: string) => {
-  const n = Number(value);
-  return value === "" || Number.isNaN(n) ? undefined : n;
-};
 
 export function TrackFilterBar({
   filters,

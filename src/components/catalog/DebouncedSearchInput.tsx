@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useDebouncedCommit } from "@/hooks/useDebouncedCommit";
 import { SearchInput } from "./SearchInput";
 
 export function DebouncedSearchInput({
@@ -15,14 +14,7 @@ export function DebouncedSearchInput({
   className?: string;
   delay?: number;
 }) {
-  const [local, setLocal] = useState(value);
-  const debounced = useDebouncedValue(local, delay);
-
-  useEffect(() => setLocal(value), [value]);
-  useEffect(() => {
-    if (debounced !== value) onCommit(debounced);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced]);
+  const [local, setLocal] = useDebouncedCommit(value, onCommit, delay);
 
   return (
     <SearchInput

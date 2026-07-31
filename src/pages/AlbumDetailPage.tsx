@@ -12,8 +12,17 @@ import { formatNumber } from "@/lib/format";
 
 export function AlbumDetailPage() {
   const { id } = useParams();
-  const query = useAlbum(Number(id));
+  const albumId = Number(id);
+  const query = useAlbum(albumId);
 
+  if (!Number.isFinite(albumId)) {
+    return (
+      <ErrorState
+        title="Album not found"
+        description="This album doesn't exist or isn't in your library."
+      />
+    );
+  }
   if (query.isError) {
     return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
   }

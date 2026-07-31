@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { ARTIST_SORTS } from "./sorts";
 import {
   parseListParams,
   listParamsToParams,
@@ -10,7 +11,7 @@ import {
 
 describe("parseListParams", () => {
   it("applies defaults for an empty query", () => {
-    expect(parseListParams(new URLSearchParams(), { defaultSort: "name" })).toEqual({
+    expect(parseListParams(new URLSearchParams(), { sorts: ARTIST_SORTS, defaultSort: "name" })).toEqual({
       sort: "name",
       order: "asc",
       page: 1,
@@ -20,16 +21,20 @@ describe("parseListParams", () => {
 
   it("parses provided values and honours a custom default per_page", () => {
     const params = new URLSearchParams({
-      sort: "title",
+      sort: "popularity",
       order: "desc",
       page: "3",
       per_page: "60",
       search: "war",
     });
     expect(
-      parseListParams(params, { defaultSort: "name", defaultPerPage: 60 })
+      parseListParams(params, {
+        sorts: ARTIST_SORTS,
+        defaultSort: "name",
+        defaultPerPage: 60,
+      })
     ).toEqual({
-      sort: "title",
+      sort: "popularity",
       order: "desc",
       page: 3,
       per_page: 60,
@@ -37,9 +42,35 @@ describe("parseListParams", () => {
     });
   });
 
+  it("falls back to the default for a sort key the resource doesn't support", () => {
+    expect(
+      parseListParams(new URLSearchParams({ sort: "'; DROP TABLE --" }), {
+        sorts: ARTIST_SORTS,
+        defaultSort: "name",
+      }).sort
+    ).toBe("name");
+
+    expect(
+      parseListParams(new URLSearchParams({ sort: "track_count" }), {
+        sorts: ARTIST_SORTS,
+        defaultSort: "name",
+      }).sort
+    ).toBe("name");
+  });
+
+  it("ignores non-numeric pagination values", () => {
+    const filters = parseListParams(
+      new URLSearchParams({ page: "abc", per_page: "many" }),
+      { sorts: ARTIST_SORTS, defaultSort: "name" }
+    );
+    expect(filters.page).toBe(1);
+    expect(filters.per_page).toBe(24);
+  });
+
   it("falls back to asc for an unrecognized order", () => {
     expect(
       parseListParams(new URLSearchParams({ order: "sideways" }), {
+        sorts: ARTIST_SORTS,
         defaultSort: "name",
       }).order
     ).toBe("asc");

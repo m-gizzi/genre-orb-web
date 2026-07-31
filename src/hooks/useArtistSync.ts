@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   artistsApi,
-  extractApiError,
+  apiErrorMessage,
   TERMINAL_SYNC_STATUSES,
   type ArtistMetadataSession,
   type ArtistSyncStatus,
@@ -76,8 +76,8 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
     startAwaiting();
   };
 
-  const reportError = async (error: unknown) => {
-    onMessage?.({ type: "error", text: await extractApiError(error) });
+  const reportError = (error: unknown) => {
+    onMessage?.({ type: "error", text: apiErrorMessage(error) });
   };
 
   const syncMutation = useMutation({

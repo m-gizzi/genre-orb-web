@@ -31,9 +31,14 @@ describe("formatNumber", () => {
 });
 
 describe("formatDate", () => {
-  it("returns 'Never' for null or invalid input", () => {
-    expect(formatDate(null)).toBe("Never");
-    expect(formatDate("not-a-date")).toBe("Never");
+  it("returns a dash for null or invalid input", () => {
+    expect(formatDate(null)).toBe("—");
+    expect(formatDate("not-a-date")).toBe("—");
+  });
+
+  it("uses a caller-supplied fallback", () => {
+    expect(formatDate(null, "Never")).toBe("Never");
+    expect(formatDate("not-a-date", "Never")).toBe("Never");
   });
 
   it("formats an ISO timestamp", () => {

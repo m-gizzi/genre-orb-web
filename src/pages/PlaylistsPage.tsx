@@ -1,13 +1,14 @@
-import { useCallback } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { HeartIcon, ListMusicIcon } from "lucide-react";
-import type { Playlist, SearchListParams } from "@/api/client";
+import type { Playlist } from "@/api/client";
 import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
+import { useUrlListParams } from "@/hooks/useUrlListParams";
 import {
-  parseListParams,
-  listParamsToParams,
+  parsePlaylistFilters,
+  playlistFiltersToParams,
 } from "@/lib/catalogFilterParams";
 import { CARD_PER_PAGE_OPTIONS } from "@/lib/config";
+import type { PlaylistSort } from "@/lib/sorts";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,36 +17,28 @@ import {
   CardGridSkeleton,
   DebouncedSearchInput,
   EmptyState,
-  ErrorState,
   Pagination,
   PlaylistSyncSwitch,
+  QueryState,
   SortControl,
 } from "@/components/catalog";
 import { formatDate, formatNumber } from "@/lib/format";
 
-const SORT_LABELS: Record<string, string> = {
+const SORT_LABELS: Record<PlaylistSort, string> = {
   name: "Name",
   last_synced_at: "Last synced",
   track_count: "Tracks",
 };
-const LIST_OPTIONS = { defaultSort: "name" };
 
 export function PlaylistsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const filters = parseListParams(searchParams, LIST_OPTIONS);
+  const { filters, applyPatch } = useUrlListParams(
+    parsePlaylistFilters,
+    playlistFiltersToParams
+  );
 
   const liked = useLikedPlaylist();
   const query = usePlaylistsPage(filters);
   const playlists = query.data?.data ?? [];
-
-  const applyPatch = useCallback(
-    (patch: Partial<SearchListParams>) => {
-      const next = { ...parseListParams(searchParams, LIST_OPTIONS), ...patch };
-      if (!("page" in patch)) next.page = 1;
-      setSearchParams(listParamsToParams(next, LIST_OPTIONS), { replace: true });
-    },
-    [searchParams, setSearchParams]
-  );
 
   return (
     <div>
@@ -60,8 +53,8 @@ export function PlaylistsPage() {
               placeholder="Search playlists…"
             />
             <SortControl
-              sort={filters.sort ?? "name"}
-              order={filters.order ?? "asc"}
+              sort={filters.sort}
+              order={filters.order}
               options={SORT_LABELS}
               onSortChange={(sort) => applyPatch({ sort })}
               onOrderChange={(order) => applyPatch({ order })}
@@ -72,62 +65,61 @@ export function PlaylistsPage() {
 
       {!filters.search && liked.data && <LikedSongsCard playlist={liked.data} />}
 
-      {query.isLoading ? (
-        <CardGridSkeleton />
-      ) : query.isError ? (
-        <ErrorState error={query.error} onRetry={() => query.refetch()} />
-      ) : playlists.length === 0 ? (
-        filters.search ? (
-          <EmptyState title="No playlists match your search" showOrb={false} />
-        ) : (
-          <EmptyState
-            title="No playlists yet"
-            description="Fetch and sync your Spotify playlists from the Library page."
-            action={<Button render={<Link to="/library" />}>Go to Library</Button>}
-          />
-        )
-      ) : (
-        <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {playlists.map((playlist) => (
-              <Card key={playlist.id} className="gap-2 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <Link
-                    to={`/playlists/${playlist.id}`}
-                    className="flex min-w-0 items-center gap-2 hover:text-primary"
-                  >
-                    <ListMusicIcon className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate font-medium">{playlist.name}</span>
-                    {playlist.is_liked_songs && (
-                      <Badge variant="secondary" className="shrink-0">
-                        Liked
-                      </Badge>
-                    )}
-                  </Link>
-                  <PlaylistSyncSwitch
-                    playlistId={playlist.id}
-                    name={playlist.name}
-                    syncEnabled={playlist.sync_enabled}
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {formatNumber(playlist.track_count)} tracks · synced{" "}
-                  {formatDate(playlist.last_synced_at)}
-                </p>
-              </Card>
-            ))}
-          </div>
-          {query.data && (
-            <Pagination
-              meta={query.data.meta}
-              label="playlists"
-              onPageChange={(page) => applyPatch({ page })}
-              onPerPageChange={(per_page) => applyPatch({ per_page })}
-              perPageOptions={CARD_PER_PAGE_OPTIONS}
+      <QueryState
+        query={query}
+        skeleton={<CardGridSkeleton />}
+        isEmpty={playlists.length === 0}
+        empty={
+          filters.search ? (
+            <EmptyState title="No playlists match your search" showOrb={false} />
+          ) : (
+            <EmptyState
+              title="No playlists yet"
+              description="Fetch and sync your Spotify playlists from the Library page."
+              action={<Button render={<Link to="/library" />}>Go to Library</Button>}
             />
-          )}
-        </>
-      )}
+          )
+        }
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {playlists.map((playlist) => (
+            <Card key={playlist.id} className="gap-2 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <Link
+                  to={`/playlists/${playlist.id}`}
+                  className="flex min-w-0 items-center gap-2 hover:text-primary"
+                >
+                  <ListMusicIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate font-medium">{playlist.name}</span>
+                  {playlist.is_liked_songs && (
+                    <Badge variant="secondary" className="shrink-0">
+                      Liked
+                    </Badge>
+                  )}
+                </Link>
+                <PlaylistSyncSwitch
+                  playlistId={playlist.id}
+                  name={playlist.name}
+                  syncEnabled={playlist.sync_enabled}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {formatNumber(playlist.track_count)} tracks · synced{" "}
+                {formatDate(playlist.last_synced_at, "Never")}
+              </p>
+            </Card>
+          ))}
+        </div>
+        {query.data && (
+          <Pagination
+            meta={query.data.meta}
+            label="playlists"
+            onPageChange={(page) => applyPatch({ page })}
+            onPerPageChange={(per_page) => applyPatch({ per_page })}
+            perPageOptions={CARD_PER_PAGE_OPTIONS}
+          />
+        )}
+      </QueryState>
     </div>
   );
 }
@@ -147,7 +139,7 @@ function LikedSongsCard({ playlist }: { playlist: Playlist }) {
             <span className="block font-medium">Liked Songs</span>
             <span className="block text-sm text-muted-foreground">
               {formatNumber(playlist.track_count)} tracks · synced{" "}
-              {formatDate(playlist.last_synced_at)}
+              {formatDate(playlist.last_synced_at, "Never")}
             </span>
           </span>
         </Link>

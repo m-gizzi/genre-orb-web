@@ -8,23 +8,7 @@ interface SyncControlsProps {
 }
 
 export function SyncControls({ enabled }: SyncControlsProps) {
-  const {
-    hasActiveLibrarySync,
-    startLibrarySync,
-    isStartingLibrarySync,
-    fetchPlaylists,
-    isFetchingPlaylists,
-    artistSyncError,
-    artistsTotal,
-    artistsSynced,
-    hasArtistsToSync,
-    hasActiveArtistSync,
-    startArtistSync,
-    isStartingArtistSync,
-    resyncAllArtists,
-    isResyncingArtists,
-    refetchArtistStatus,
-  } = useSyncStatus();
+  const { library, artist } = useSyncStatus();
 
   const playlistsQuery = usePlaylists(enabled);
   const likedQuery = useLikedPlaylist(enabled);
@@ -35,7 +19,10 @@ export function SyncControls({ enabled }: SyncControlsProps) {
   const hasPlaylists = !!playlists && playlists.length > 0;
   const hasSyncEnabled = playlists?.some((p) => p.sync_enabled) ?? false;
 
-  const artistPercent = artistsTotal > 0 ? (artistsSynced * 100) / artistsTotal : 0;
+  const artistPercent =
+    artist.artistsTotal > 0
+      ? (artist.artistsSynced * 100) / artist.artistsTotal
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -44,12 +31,12 @@ export function SyncControls({ enabled }: SyncControlsProps) {
           <h2 className="text-xl font-semibold">Playlists</h2>
           <div className="flex gap-2">
             <Button
-              onClick={() => fetchPlaylists()}
+              onClick={() => library.fetchPlaylists()}
               variant="outline"
               size="sm"
-              disabled={isFetchingPlaylists}
+              disabled={library.isFetchingPlaylists}
             >
-              {isFetchingPlaylists
+              {library.isFetchingPlaylists
                 ? "Fetching..."
                 : hasPlaylists
                   ? "Refresh"
@@ -57,13 +44,13 @@ export function SyncControls({ enabled }: SyncControlsProps) {
             </Button>
             {hasSyncEnabled && (
               <Button
-                onClick={() => startLibrarySync()}
+                onClick={() => library.start()}
                 size="sm"
-                disabled={hasActiveLibrarySync || isStartingLibrarySync}
+                disabled={library.hasActiveSync || library.isStarting}
               >
-                {isStartingLibrarySync
+                {library.isStarting
                   ? "Starting..."
-                  : hasActiveLibrarySync
+                  : library.hasActiveSync
                     ? "Syncing..."
                     : "Sync"}
               </Button>
@@ -75,47 +62,47 @@ export function SyncControls({ enabled }: SyncControlsProps) {
         </p>
       </section>
 
-      {artistSyncError ? (
+      {artist.isError ? (
         <div className="rounded-lg border border-dashed border-destructive/40 p-6 text-center text-sm text-destructive">
           <p>Couldn't load artist metadata status.</p>
           <button
             type="button"
-            onClick={() => refetchArtistStatus()}
+            onClick={() => artist.refetchStatus()}
             className="mt-1 underline"
           >
             Try again
           </button>
         </div>
-      ) : artistsTotal > 0 ? (
+      ) : artist.artistsTotal > 0 ? (
         <section className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-xl font-semibold">Artist Metadata</h2>
             <div className="flex gap-2">
               <Button
-                onClick={() => startArtistSync()}
+                onClick={() => artist.start()}
                 size="sm"
                 disabled={
-                  hasActiveArtistSync ||
-                  !hasArtistsToSync ||
-                  isStartingArtistSync ||
-                  isResyncingArtists
+                  artist.hasActiveSync ||
+                  !artist.hasArtistsToSync ||
+                  artist.isStarting ||
+                  artist.isResyncing
                 }
               >
-                {isStartingArtistSync
+                {artist.isStarting
                   ? "Starting..."
-                  : hasActiveArtistSync
+                  : artist.hasActiveSync
                     ? "Syncing..."
                     : "Sync Genres"}
               </Button>
               <Button
-                onClick={() => resyncAllArtists()}
+                onClick={() => artist.resyncAll()}
                 variant="outline"
                 size="sm"
                 disabled={
-                  hasActiveArtistSync || isStartingArtistSync || isResyncingArtists
+                  artist.hasActiveSync || artist.isStarting || artist.isResyncing
                 }
               >
-                {isResyncingArtists ? "Starting..." : "Resync All"}
+                {artist.isResyncing ? "Starting..." : "Resync All"}
               </Button>
             </div>
           </div>
@@ -126,7 +113,7 @@ export function SyncControls({ enabled }: SyncControlsProps) {
                 Artists with genres
               </span>
               <span className="font-medium">
-                {artistsSynced} / {artistsTotal}
+                {artist.artistsSynced} / {artist.artistsTotal}
               </span>
             </div>
             <ProgressBar
@@ -134,7 +121,7 @@ export function SyncControls({ enabled }: SyncControlsProps) {
               className="mt-2"
               label="Artists with genres"
             />
-            {!hasArtistsToSync && (
+            {!artist.hasArtistsToSync && (
               <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
                 All artists have genre metadata!
               </p>

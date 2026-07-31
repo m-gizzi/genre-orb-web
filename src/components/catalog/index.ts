@@ -8,6 +8,7 @@ export { GenreAutocomplete } from "./GenreAutocomplete";
 export { EmptyState } from "./EmptyState";
 export { ErrorState } from "./ErrorState";
 export { Pagination } from "./Pagination";
+export { QueryState } from "./QueryState";
 export { SearchInput } from "./SearchInput";
 export { StatTile } from "./StatTile";
 export { TableSkeleton, CardGridSkeleton } from "./Skeletons";

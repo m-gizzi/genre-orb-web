@@ -42,6 +42,13 @@ export function ArtistCard({ artist }: { artist: Artist }) {
   );
 }
 
+function trackSummary(album: Album): string {
+  if (album.saved_tracks === 0 && album.total_tracks == null) return "";
+  const saved = `${formatNumber(album.saved_tracks)} saved`;
+  if (album.total_tracks == null) return saved;
+  return `${saved}, ${formatNumber(album.total_tracks)} total`;
+}
+
 export function AlbumCard({ album }: { album: Album }) {
   const artistText = album.artists.map((a) => a.name).join(", ") || "—";
   const metaText = album.release_year
@@ -75,13 +82,7 @@ export function AlbumCard({ album }: { album: Album }) {
             {metaText}
           </p>
           <p className="min-h-[1lh] text-xs text-muted-foreground">
-            {album.saved_tracks > 0 || album.total_tracks != null
-              ? `${formatNumber(album.saved_tracks)} saved${
-                  album.total_tracks != null
-                    ? `, ${formatNumber(album.total_tracks)} total`
-                    : ""
-                }`
-              : ""}
+            {trackSummary(album)}
           </p>
         </div>
       </Card>

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { playlistsApi, type Pagination } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -14,6 +14,7 @@ export function usePlaylistTracks(id: number, params: Pagination = {}) {
   return useQuery({
     queryKey: queryKeys.playlistTracks(id, params),
     queryFn: () => playlistsApi.tracks(id, params),
+    placeholderData: keepPreviousData,
     enabled: Number.isFinite(id),
   });
 }
