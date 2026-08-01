@@ -13,9 +13,13 @@ const STATUS_LABEL: Record<SyncSessionStatus, string> = {
 
 interface ArtistSyncStatusBannerProps {
   session: ArtistMetadataSession;
+  onDismiss?: () => void;
 }
 
-export function ArtistSyncStatusBanner({ session }: ArtistSyncStatusBannerProps) {
+export function ArtistSyncStatusBanner({
+  session,
+  onDismiss,
+}: ArtistSyncStatusBannerProps) {
   const active = isSyncActive(session.status);
 
   return (
@@ -24,6 +28,7 @@ export function ArtistSyncStatusBanner({ session }: ArtistSyncStatusBannerProps)
       active={active}
       label={STATUS_LABEL[session.status]}
       headerRight={`${session.progress.completed}/${session.progress.total} batches`}
+      onDismiss={active ? undefined : onDismiss}
     >
       {active && (
         <ProgressBar

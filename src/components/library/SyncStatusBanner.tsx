@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type {
   SyncSession,
   SyncSessionPlaylist,
@@ -35,15 +36,21 @@ function playlistStatusText(playlist: SyncSessionPlaylist): string {
 
 interface SyncStatusBannerProps {
   session: SyncSession;
+  onDismiss?: () => void;
 }
 
-export function SyncStatusBanner({ session }: SyncStatusBannerProps) {
+export function SyncStatusBanner({ session, onDismiss }: SyncStatusBannerProps) {
   const active = isSyncActive(session.status);
-  const failedPlaylists = session.playlists.filter((p) => p.status === "failed");
   const showErrors =
     !active &&
     (session.status === "failed" ||
       session.status === "completed_with_errors");
+
+  const playlists = useMemo(
+    () => [...session.playlists].sort((a, b) => a.playlist_id - b.playlist_id),
+    [session.playlists]
+  );
+  const failedPlaylists = playlists.filter((p) => p.status === "failed");
 
   return (
     <StatusBanner
@@ -51,6 +58,7 @@ export function SyncStatusBanner({ session }: SyncStatusBannerProps) {
       active={active}
       label={STATUS_LABEL[session.status]}
       headerRight={`${session.progress.completed}/${session.progress.total} playlists`}
+      onDismiss={active ? undefined : onDismiss}
     >
       {active && (
         <>
@@ -61,7 +69,7 @@ export function SyncStatusBanner({ session }: SyncStatusBannerProps) {
             label="Library sync progress"
           />
           <div className="mt-2 space-y-1 text-sm">
-            {session.playlists.map((playlist) => (
+            {playlists.map((playlist) => (
               <div
                 key={playlist.playlist_id}
                 className="flex items-center justify-between"

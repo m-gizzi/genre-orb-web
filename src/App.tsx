@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Router } from "@/Router";
 import { QUERY_RETRY, QUERY_STALE_TIME_MS } from "@/lib/config";
 import "./index.css";
@@ -16,9 +17,11 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

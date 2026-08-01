@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>genre_orb_web</title>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("genre-orb-theme") === "dark") {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {
+          /* localStorage unavailable; fall back to default theme */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

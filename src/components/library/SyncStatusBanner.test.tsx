@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { SyncSession } from "@/api/client";
 import { SyncStatusBanner } from "./SyncStatusBanner";
@@ -76,6 +76,53 @@ describe("SyncStatusBanner", () => {
     render(<SyncStatusBanner session={makeSession({ status: "failed" })} />);
 
     expect(screen.getByText("Sync failed")).toBeInTheDocument();
+  });
+
+  it("renders per-playlist rows in a stable id order regardless of input order", () => {
+    const session = makeSession({
+      status: "running",
+      playlists: [
+        {
+          playlist_id: 3,
+          playlist_name: "Pop",
+          status: "pending",
+          page_progress: { total: 0, completed: 0 },
+          error_message: null,
+        },
+        {
+          playlist_id: 1,
+          playlist_name: "Metal",
+          status: "pending",
+          page_progress: { total: 0, completed: 0 },
+          error_message: null,
+        },
+        {
+          playlist_id: 2,
+          playlist_name: "Jazz",
+          status: "pending",
+          page_progress: { total: 0, completed: 0 },
+          error_message: null,
+        },
+      ],
+    });
+
+    render(<SyncStatusBanner session={session} />);
+
+    const names = screen.getAllByText(/Metal|Jazz|Pop/).map((el) => el.textContent);
+    expect(names).toEqual(["Metal", "Jazz", "Pop"]);
+  });
+
+  it("calls onDismiss from a finished notice", () => {
+    const onDismiss = vi.fn();
+    render(
+      <SyncStatusBanner
+        session={makeSession({ status: "completed" })}
+        onDismiss={onDismiss}
+      />
+    );
+
+    screen.getByRole("button", { name: "Dismiss notice" }).click();
+    expect(onDismiss).toHaveBeenCalled();
   });
 
   it("surfaces per-playlist error messages when the sync finished with errors", () => {

@@ -10,3 +10,14 @@ export const SYNC_START_TIMEOUT_MS = 15_000;
 export const METADATA_FETCH_TIMEOUT_MS = 30_000;
 
 export const MESSAGE_TIMEOUT_MS = 5_000;
+
+export const SYNC_NOTICE_TIMEOUT_MS = 5_000;
+
+export const PER_PAGE_OPTIONS: readonly number[] = [10, 25, 50, 100];
+export const DEFAULT_PER_PAGE = 25;
+
+export const CARD_PER_PAGE_OPTIONS: readonly number[] = [12, 24, 48, 96];
+export const DEFAULT_CARD_PER_PAGE = 24;
+
+export const GENRE_PER_PAGE_OPTIONS: readonly number[] = [30, 60, 120];
+export const DEFAULT_GENRE_PER_PAGE = 60;

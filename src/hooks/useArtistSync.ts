@@ -1,12 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   artistsApi,
-  extractApiError,
+  apiErrorMessage,
+  TERMINAL_SYNC_STATUSES,
   type ArtistMetadataSession,
   type ArtistSyncStatus,
 } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
+import { invalidateLibraryQueries } from "@/lib/invalidate";
 import { POLL_INTERVAL_MS, SYNC_START_TIMEOUT_MS } from "@/lib/config";
 import { useTemporaryFlag } from "@/hooks/useTemporaryFlag";
 import type { TransientMessage } from "@/hooks/useTransientMessage";
@@ -43,10 +45,23 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
   });
 
   const hasActiveSync = statusQuery.data?.has_active_sync ?? false;
+  const sessionStatus = statusQuery.data?.current_session?.status ?? null;
 
   useEffect(() => {
     if (awaitingStart && hasActiveSync) stopAwaiting();
   }, [awaitingStart, hasActiveSync, stopAwaiting]);
+
+  const wasActiveRef = useRef(false);
+  useEffect(() => {
+    const finished =
+      wasActiveRef.current &&
+      !hasActiveSync &&
+      (sessionStatus === null || TERMINAL_SYNC_STATUSES.includes(sessionStatus));
+    if (finished) {
+      invalidateLibraryQueries(queryClient);
+    }
+    wasActiveRef.current = hasActiveSync;
+  }, [hasActiveSync, sessionStatus, queryClient]);
 
   const applyStartedSession = async (session: ArtistMetadataSession) => {
     await queryClient.cancelQueries({ queryKey: queryKeys.artistSyncStatus });
@@ -61,8 +76,8 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
     startAwaiting();
   };
 
-  const reportError = async (error: unknown) => {
-    onMessage?.({ type: "error", text: await extractApiError(error) });
+  const reportError = (error: unknown) => {
+    onMessage?.({ type: "error", text: apiErrorMessage(error) });
   };
 
   const syncMutation = useMutation({
