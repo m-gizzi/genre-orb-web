@@ -14,6 +14,8 @@ import { DeleteSmartPlaylistDialog } from "@/components/smartPlaylists/DeleteSma
 import { SourcePlaylistPicker } from "@/components/smartPlaylists/SourcePlaylistPicker";
 import { formatDate, formatNumber } from "@/lib/format";
 
+const NOT_READY_HINT = "Add at least one rule before turning this on.";
+
 export function SmartPlaylistDetailPage() {
   const { id } = useParams();
   const smartPlaylistId = Number(id);
@@ -34,10 +36,10 @@ export function SmartPlaylistDetailPage() {
     return <Skeleton className="h-12 w-64" />;
   }
 
-  return <SmartPlaylistDetail smartPlaylist={query.data} />;
+  return <SmartPlaylistDetailView smartPlaylist={query.data} />;
 }
 
-function SmartPlaylistDetail({
+function SmartPlaylistDetailView({
   smartPlaylist,
 }: {
   smartPlaylist: SmartPlaylistDetail;
@@ -48,6 +50,10 @@ function SmartPlaylistDetail({
   const update = useUpdateSmartPlaylist(smartPlaylist.id);
 
   const target = smartPlaylist.target_playlist;
+
+  const enabled = update.isPending
+    ? (update.variables?.is_enabled ?? smartPlaylist.is_enabled)
+    : smartPlaylist.is_enabled;
 
   function startEditingSources() {
     setSourceIds(smartPlaylist.source_playlists.map((playlist) => playlist.id));
@@ -89,12 +95,17 @@ function SmartPlaylistDetail({
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-2 text-sm text-muted-foreground">
               <span aria-hidden="true">Enabled</span>
-              <Switch
-                checked={smartPlaylist.is_enabled}
-                disabled={!smartPlaylist.is_ready || update.isPending}
-                onCheckedChange={(next) => update.mutate({ is_enabled: next })}
-                aria-label={`Enable ${smartPlaylist.name}`}
-              />
+              <span
+                className="inline-flex"
+                title={smartPlaylist.is_ready ? undefined : NOT_READY_HINT}
+              >
+                <Switch
+                  checked={enabled}
+                  disabled={!smartPlaylist.is_ready || update.isPending}
+                  onCheckedChange={(next) => update.mutate({ is_enabled: next })}
+                  aria-label={`Enable ${smartPlaylist.name}`}
+                />
+              </span>
             </span>
             <Button variant="outline" onClick={() => setDeleting(true)}>
               <Trash2Icon /> Delete

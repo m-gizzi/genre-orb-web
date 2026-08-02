@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { apiErrorMessage, type Playlist } from "@/api/client";
 import { useUpdatePlaylist } from "@/hooks/usePlaylistMutations";
 import { Button } from "@/components/ui/button";
@@ -30,12 +30,23 @@ export function EditPlaylistDialog({
   open,
   onOpenChange,
 }: EditPlaylistDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {open && <EditPlaylistForm playlist={playlist} onOpenChange={onOpenChange} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface EditPlaylistFormProps {
+  playlist: Playlist;
+  onOpenChange: (open: boolean) => void;
+}
+
+function EditPlaylistForm({ playlist, onOpenChange }: EditPlaylistFormProps) {
   const [values, setValues] = useState<PlaylistFormValues>(() => valuesFrom(playlist));
   const update = useUpdatePlaylist(playlist.id);
-
-  useEffect(() => {
-    if (open) setValues(valuesFrom(playlist));
-  }, [open, playlist]);
 
   function submit() {
     update.mutate(
@@ -48,38 +59,34 @@ export function EditPlaylistDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit playlist</DialogTitle>
-          <DialogDescription>
-            Saving pushes these details to Spotify.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle>Edit playlist</DialogTitle>
+        <DialogDescription>Saving pushes these details to Spotify.</DialogDescription>
+      </DialogHeader>
 
-        <PlaylistFormFields
-          idPrefix={`edit-playlist-${playlist.id}`}
-          values={values}
-          onChange={setValues}
-        />
+      <PlaylistFormFields
+        idPrefix={`edit-playlist-${playlist.id}`}
+        values={values}
+        onChange={setValues}
+      />
 
-        {update.isError && (
-          <p className="text-sm text-destructive">{apiErrorMessage(update.error)}</p>
-        )}
+      {update.isError && (
+        <p className="text-sm text-destructive">{apiErrorMessage(update.error)}</p>
+      )}
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={update.isPending}
-          >
-            Cancel
-          </Button>
-          <Button onClick={submit} disabled={update.isPending || !values.name.trim()}>
-            {update.isPending ? "Saving…" : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <DialogFooter>
+        <Button
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={update.isPending}
+        >
+          Cancel
+        </Button>
+        <Button onClick={submit} disabled={update.isPending || !values.name.trim()}>
+          {update.isPending ? "Saving…" : "Save"}
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
