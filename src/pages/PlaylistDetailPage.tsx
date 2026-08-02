@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { PencilIcon, SparklesIcon } from "lucide-react";
 import { usePlaylist, usePlaylistTracks } from "@/hooks/usePlaylistDetail";
 import { usePagination } from "@/hooks/usePagination";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   EmptyState,
@@ -13,16 +16,27 @@ import {
   TableSkeleton,
   TrackTable,
 } from "@/components/catalog";
+import { EditPlaylistDialog } from "@/components/playlists/EditPlaylistDialog";
+import { MakeSmartDialog } from "@/components/smartPlaylists/MakeSmartDialog";
+import { SmartBadge } from "@/components/smartPlaylists/SmartBadge";
 import { formatDate, formatNumber } from "@/lib/format";
 
 export function PlaylistDetailPage() {
   const { id } = useParams();
   const playlistId = Number(id);
   const { page, perPage, setPage, setPerPage } = usePagination(50);
+  const [editing, setEditing] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   const playlist = usePlaylist(playlistId);
   const tracks = usePlaylistTracks(playlistId, { page, per_page: perPage });
   const trackRows = tracks.data?.data ?? [];
+  const data = playlist.data;
+
+  // Liked Songs has no Spotify playlist behind it, so it can be neither edited
+  // nor used as a smart playlist target.
+  const canEdit = data != null && !data.is_liked_songs;
+  const canMakeSmart = canEdit && !data.is_smart;
 
   if (!Number.isFinite(playlistId)) {
     return (
@@ -38,28 +52,48 @@ export function PlaylistDetailPage() {
 
   return (
     <div>
-      {playlist.isLoading || !playlist.data ? (
+      {playlist.isLoading || !data ? (
         <Skeleton className="mb-6 h-12 w-64" />
       ) : (
         <PageHeader
           title={
             <span className="flex items-center gap-2">
-              {playlist.data.name}
-              {playlist.data.is_liked_songs && (
-                <Badge variant="secondary">Liked</Badge>
+              {data.name}
+              {data.is_liked_songs && <Badge variant="secondary">Liked</Badge>}
+              {data.smart_playlist_id != null && (
+                <SmartBadge smartPlaylistId={data.smart_playlist_id} />
               )}
             </span>
           }
-          description={`${formatNumber(playlist.data.track_count)} tracks · synced ${formatDate(playlist.data.last_synced_at, "Never")}`}
+          description={
+            <>
+              {data.description && <span className="block">{data.description}</span>}
+              {formatNumber(data.track_count)} tracks · synced{" "}
+              {formatDate(data.last_synced_at, "Never")}
+            </>
+          }
           actions={
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              Sync
-              <PlaylistSyncSwitch
-                playlistId={playlist.data.id}
-                name={playlist.data.name}
-                syncEnabled={playlist.data.sync_enabled}
-              />
-            </label>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span aria-hidden="true">Sync</span>
+                <PlaylistSyncSwitch
+                  playlistId={data.id}
+                  name={data.name}
+                  syncEnabled={data.sync_enabled}
+                  locked={data.is_smart}
+                />
+              </span>
+              {canEdit && (
+                <Button variant="outline" onClick={() => setEditing(true)}>
+                  <PencilIcon /> Edit
+                </Button>
+              )}
+              {canMakeSmart && (
+                <Button onClick={() => setConverting(true)}>
+                  <SparklesIcon /> Make smart
+                </Button>
+              )}
+            </div>
           }
         />
       )}
@@ -85,6 +119,25 @@ export function PlaylistDetailPage() {
           />
         )}
       </QueryState>
+
+      {data && (
+        <>
+          {canEdit && (
+            <EditPlaylistDialog
+              playlist={data}
+              open={editing}
+              onOpenChange={setEditing}
+            />
+          )}
+          {canMakeSmart && (
+            <MakeSmartDialog
+              playlist={data}
+              open={converting}
+              onOpenChange={setConverting}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

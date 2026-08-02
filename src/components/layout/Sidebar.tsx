@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboardIcon,
   ListMusicIcon,
+  SparklesIcon,
   Music2Icon,
   UsersIcon,
   Disc3Icon,
@@ -26,6 +27,7 @@ interface NavItem {
 const BROWSE: NavItem[] = [
   { to: "/", label: "Home", icon: LayoutDashboardIcon, end: true },
   { to: "/playlists", label: "Playlists", icon: ListMusicIcon },
+  { to: "/smart-playlists", label: "Smart Playlists", icon: SparklesIcon },
   { to: "/tracks", label: "Tracks", icon: Music2Icon },
   { to: "/artists", label: "Artists", icon: UsersIcon },
   { to: "/albums", label: "Albums", icon: Disc3Icon },

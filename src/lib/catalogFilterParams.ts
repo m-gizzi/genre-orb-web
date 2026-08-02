@@ -10,11 +10,13 @@ import {
   ARTIST_SORTS,
   GENRE_SORTS,
   PLAYLIST_SORTS,
+  SMART_PLAYLIST_SORTS,
   pickSort,
   type AlbumSort,
   type ArtistSort,
   type GenreSort,
   type PlaylistSort,
+  type SmartPlaylistSort,
 } from "@/lib/sorts";
 
 interface ParseOptions<S extends string> {
@@ -82,6 +84,10 @@ function parseCatalogFilters<S extends string>(
 const ARTIST_OPTIONS = { sorts: ARTIST_SORTS, defaultSort: "name" } as const;
 const ALBUM_OPTIONS = { sorts: ALBUM_SORTS, defaultSort: "title" } as const;
 const PLAYLIST_OPTIONS = { sorts: PLAYLIST_SORTS, defaultSort: "name" } as const;
+const SMART_PLAYLIST_OPTIONS = {
+  sorts: SMART_PLAYLIST_SORTS,
+  defaultSort: "name",
+} as const;
 const GENRE_OPTIONS = {
   sorts: GENRE_SORTS,
   defaultSort: "name",
@@ -91,6 +97,7 @@ const GENRE_OPTIONS = {
 export type ArtistFilters = Parsed<CatalogListParams, ArtistSort>;
 export type AlbumFilters = Parsed<AlbumListParams, AlbumSort>;
 export type PlaylistFilters = Parsed<SearchListParams, PlaylistSort>;
+export type SmartPlaylistFilters = Parsed<SearchListParams, SmartPlaylistSort>;
 export type GenreFilters = Parsed<SearchListParams, GenreSort>;
 
 export function parseArtistFilters(params: URLSearchParams): ArtistFilters {
@@ -122,6 +129,16 @@ export function parsePlaylistFilters(params: URLSearchParams): PlaylistFilters {
 
 export function playlistFiltersToParams(filters: SearchListParams) {
   return listParamsToParams(filters, PLAYLIST_OPTIONS);
+}
+
+export function parseSmartPlaylistFilters(
+  params: URLSearchParams,
+): SmartPlaylistFilters {
+  return parseListParams(params, SMART_PLAYLIST_OPTIONS);
+}
+
+export function smartPlaylistFiltersToParams(filters: SearchListParams) {
+  return listParamsToParams(filters, SMART_PLAYLIST_OPTIONS);
 }
 
 export function parseGenreFilters(params: URLSearchParams): GenreFilters {

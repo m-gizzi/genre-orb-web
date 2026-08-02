@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/library/ProgressBar";
 import { useSyncStatus } from "@/contexts/SyncStatusContext";
-import { useLikedPlaylist, usePlaylists } from "@/hooks/usePlaylists";
+import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
 
 interface SyncControlsProps {
   enabled: boolean;
@@ -10,14 +10,14 @@ interface SyncControlsProps {
 export function SyncControls({ enabled }: SyncControlsProps) {
   const { library, artist } = useSyncStatus();
 
-  const playlistsQuery = usePlaylists(enabled);
+  const totalQuery = usePlaylistsPage({ per_page: 1 }, enabled);
+  const syncEnabledQuery = usePlaylistsPage({ per_page: 1, sync_enabled: true }, enabled);
   const likedQuery = useLikedPlaylist(enabled);
   const liked = likedQuery.data ?? null;
-  const playlists = liked
-    ? [liked, ...(playlistsQuery.data ?? [])]
-    : playlistsQuery.data;
-  const hasPlaylists = !!playlists && playlists.length > 0;
-  const hasSyncEnabled = playlists?.some((p) => p.sync_enabled) ?? false;
+
+  const hasPlaylists = (totalQuery.data?.meta.total ?? 0) > 0 || liked != null;
+  const hasSyncEnabled =
+    (syncEnabledQuery.data?.meta.total ?? 0) > 0 || (liked?.sync_enabled ?? false);
 
   const artistPercent =
     artist.artistsTotal > 0

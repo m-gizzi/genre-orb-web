@@ -2,11 +2,17 @@ export const ARTIST_SORTS = ["name", "popularity", "followers"] as const;
 export const ALBUM_SORTS = ["title", "release_year", "popularity"] as const;
 export const GENRE_SORTS = ["name", "track_count"] as const;
 export const PLAYLIST_SORTS = ["name", "last_synced_at", "track_count"] as const;
+export const SMART_PLAYLIST_SORTS = [
+  "name",
+  "created_at",
+  "last_evaluated_at",
+] as const;
 
 export type ArtistSort = (typeof ARTIST_SORTS)[number];
 export type AlbumSort = (typeof ALBUM_SORTS)[number];
 export type GenreSort = (typeof GENRE_SORTS)[number];
 export type PlaylistSort = (typeof PLAYLIST_SORTS)[number];
+export type SmartPlaylistSort = (typeof SMART_PLAYLIST_SORTS)[number];
 
 export function pickSort<S extends string>(
   raw: string | null,

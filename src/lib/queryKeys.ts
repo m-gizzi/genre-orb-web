@@ -2,6 +2,7 @@ import type {
   TrackFilters,
   Pagination,
   SearchListParams,
+  PlaylistListParams,
   CatalogListParams,
   AlbumListParams,
 } from "@/api/client";
@@ -11,6 +12,8 @@ const roots = {
   artistSyncStatus: "artistSyncStatus",
   playlists: "playlists",
   playlist: "playlist",
+  smartPlaylists: "smartPlaylists",
+  smartPlaylist: "smartPlaylist",
   tracks: "tracks",
   track: "track",
   artists: "artists",
@@ -24,6 +27,8 @@ const roots = {
 export const CATALOG_QUERY_ROOTS: readonly string[] = [
   roots.playlists,
   roots.playlist,
+  roots.smartPlaylists,
+  roots.smartPlaylist,
   roots.tracks,
   roots.track,
   roots.artists,
@@ -37,10 +42,18 @@ export const CATALOG_QUERY_ROOTS: readonly string[] = [
 export const queryKeys = {
   libraryStatus: [roots.libraryStatus] as const,
   playlists: [roots.playlists] as const,
-  playlistsPaged: (params: SearchListParams = {}) =>
+  playlistsPaged: (params: PlaylistListParams = {}) =>
     [roots.playlists, "paged", params] as const,
+  playlistsInfinite: (search: string) =>
+    [roots.playlists, "infinite", search] as const,
   likedPlaylist: [roots.playlists, "liked"] as const,
+  playlistDetails: [roots.playlist] as const,
   artistSyncStatus: [roots.artistSyncStatus] as const,
+
+  smartPlaylists: [roots.smartPlaylists] as const,
+  smartPlaylistsPaged: (params: SearchListParams = {}) =>
+    [roots.smartPlaylists, "paged", params] as const,
+  smartPlaylist: (id: number) => [roots.smartPlaylist, id] as const,
 
   playlist: (id: number) => [roots.playlist, id] as const,
   playlistTracks: (id: number, params: Pagination = {}) =>

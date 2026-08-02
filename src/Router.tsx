@@ -9,6 +9,8 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { LibraryPage } from "@/pages/LibraryPage";
 import { PlaylistsPage } from "@/pages/PlaylistsPage";
 import { PlaylistDetailPage } from "@/pages/PlaylistDetailPage";
+import { SmartPlaylistsPage } from "@/pages/SmartPlaylistsPage";
+import { SmartPlaylistDetailPage } from "@/pages/SmartPlaylistDetailPage";
 import { TracksPage } from "@/pages/TracksPage";
 import { TrackDetailPage } from "@/pages/TrackDetailPage";
 import { ArtistsPage } from "@/pages/ArtistsPage";
@@ -32,6 +34,11 @@ export function Router() {
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/playlists" element={<PlaylistsPage />} />
             <Route path="/playlists/:id" element={<PlaylistDetailPage />} />
+            <Route path="/smart-playlists" element={<SmartPlaylistsPage />} />
+            <Route
+              path="/smart-playlists/:id"
+              element={<SmartPlaylistDetailPage />}
+            />
             <Route path="/tracks" element={<TracksPage />} />
             <Route path="/tracks/:id" element={<TrackDetailPage />} />
             <Route path="/artists" element={<ArtistsPage />} />
