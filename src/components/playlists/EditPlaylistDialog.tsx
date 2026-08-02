@@ -33,7 +33,7 @@ export function EditPlaylistDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {open && <EditPlaylistForm playlist={playlist} onOpenChange={onOpenChange} />}
+        <EditPlaylistForm playlist={playlist} onOpenChange={onOpenChange} />
       </DialogContent>
     </Dialog>
   );

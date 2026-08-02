@@ -89,6 +89,45 @@ describe("SmartPlaylistsPage", () => {
     expect(await screen.findByText(/1 source · no rules yet/)).toBeInTheDocument();
   });
 
+  it("counts nested groups the way the API does", async () => {
+    renderPage([
+      smartPlaylist({
+        is_ready: true,
+        source_count: 2,
+        rules: {
+          match: "all",
+          rules: [
+            { field: "genre", operator: "equals", value: "metal" },
+            {
+              match: "any",
+              rules: [
+                { field: "year", operator: "greater_than", value: 2020 },
+                { field: "artist", operator: "contains", value: "doom" },
+              ],
+            },
+          ],
+        },
+      }),
+    ]);
+
+    expect(await screen.findByText(/2 sources · 4 rules/)).toBeInTheDocument();
+  });
+
+  it("does not say '1 rules'", async () => {
+    renderPage([
+      smartPlaylist({
+        is_ready: true,
+        source_count: 1,
+        rules: {
+          match: "all",
+          rules: [{ field: "genre", operator: "equals", value: "metal" }],
+        },
+      }),
+    ]);
+
+    expect(await screen.findByText(/1 source · 1 rule$/)).toBeInTheDocument();
+  });
+
   it("opens the create dialog from the New button", async () => {
     renderPage([smartPlaylist()]);
     await screen.findByText("Metal Mix");

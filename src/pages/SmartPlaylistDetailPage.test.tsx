@@ -95,6 +95,12 @@ describe("SmartPlaylistDetailPage", () => {
       "title",
       "Add at least one rule before turning this on.",
     );
+
+    expect(control).not.toBeDisabled();
+    const hintId = control.getAttribute("aria-describedby");
+    expect(document.getElementById(hintId!)).toHaveTextContent(
+      "Add at least one rule before turning this on.",
+    );
   });
 
   it("enables a smart playlist that has rules", async () => {

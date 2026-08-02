@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
+import { HintedSwitch } from "@/components/ui/hinted-switch";
 import { ErrorState } from "@/components/catalog";
 import { DeleteSmartPlaylistDialog } from "@/components/smartPlaylists/DeleteSmartPlaylistDialog";
 import { SourcePlaylistPicker } from "@/components/smartPlaylists/SourcePlaylistPicker";
@@ -95,17 +95,13 @@ function SmartPlaylistDetailView({
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-2 text-sm text-muted-foreground">
               <span aria-hidden="true">Enabled</span>
-              <span
-                className="inline-flex"
-                title={smartPlaylist.is_ready ? undefined : NOT_READY_HINT}
-              >
-                <Switch
-                  checked={enabled}
-                  disabled={!smartPlaylist.is_ready || update.isPending}
-                  onCheckedChange={(next) => update.mutate({ is_enabled: next })}
-                  aria-label={`Enable ${smartPlaylist.name}`}
-                />
-              </span>
+              <HintedSwitch
+                checked={enabled}
+                disabled={update.isPending}
+                hint={smartPlaylist.is_ready ? undefined : NOT_READY_HINT}
+                onCheckedChange={(next) => update.mutate({ is_enabled: next })}
+                aria-label={`Enable ${smartPlaylist.name}`}
+              />
             </span>
             <Button variant="outline" onClick={() => setDeleting(true)}>
               <Trash2Icon /> Delete

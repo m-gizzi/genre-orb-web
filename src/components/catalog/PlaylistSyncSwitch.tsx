@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { playlistsApi } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { Switch } from "@/components/ui/switch";
+import { HintedSwitch } from "@/components/ui/hinted-switch";
 
 const LOCKED_HINT =
   "Smart playlists stay synced so Genre Orb can see what Spotify holds.";
@@ -32,20 +32,13 @@ export function PlaylistSyncSwitch({
 
   const checked = mutation.isPending ? (mutation.variables ?? syncEnabled) : syncEnabled;
 
-  const control = (
-    <Switch
+  return (
+    <HintedSwitch
       checked={checked}
-      disabled={locked || mutation.isPending}
+      disabled={mutation.isPending}
+      hint={locked ? LOCKED_HINT : undefined}
       onCheckedChange={(next) => mutation.mutate(next)}
       aria-label={`Sync ${name}`}
     />
-  );
-
-  if (!locked) return control;
-
-  return (
-    <span className="inline-flex" title={LOCKED_HINT}>
-      {control}
-    </span>
   );
 }

@@ -43,4 +43,23 @@ describe("PlaylistSyncSwitch", () => {
     await userEvent.click(control);
     expect(mockedApi.update).not.toHaveBeenCalled();
   });
+
+  it("keeps the locked switch reachable and its reason announced", async () => {
+    renderWithProviders(
+      <PlaylistSyncSwitch playlistId={1} name="Metal Mix" syncEnabled locked />,
+      { withQuery: true },
+    );
+
+    const control = screen.getByRole("switch", { name: "Sync Metal Mix" });
+
+    expect(control).not.toBeDisabled();
+    await userEvent.tab();
+    expect(control).toHaveFocus();
+
+    const hintId = control.getAttribute("aria-describedby");
+    expect(hintId).toBeTruthy();
+    expect(document.getElementById(hintId!)).toHaveTextContent(
+      "Smart playlists stay synced so Genre Orb can see what Spotify holds.",
+    );
+  });
 });

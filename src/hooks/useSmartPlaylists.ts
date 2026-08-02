@@ -16,6 +16,7 @@ import { queryKeys } from "@/lib/queryKeys";
 function invalidateSmartPlaylists(queryClient: QueryClient, id?: number) {
   queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylists });
   queryClient.invalidateQueries({ queryKey: queryKeys.playlists });
+  queryClient.invalidateQueries({ queryKey: queryKeys.playlistDetails });
   if (id != null) {
     queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylist(id) });
   }

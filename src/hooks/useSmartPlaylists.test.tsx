@@ -98,6 +98,18 @@ describe("useCreateSmartPlaylist", () => {
     expect(keys).toContainEqual(["smartPlaylists"]);
     expect(keys).toContainEqual(["playlists"]);
   });
+
+  it("invalidates playlist detail so the converted target stops looking regular", async () => {
+    mockedApi.create.mockResolvedValue({ id: 7 } as SmartPlaylistDetail);
+    const { wrapper, queryClient } = makeQueryWrapper();
+    const spy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+
+    const { result } = renderHook(() => useCreateSmartPlaylist(), { wrapper });
+    result.current.mutate({ target_playlist_id: 1, source_playlist_ids: [2] });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(spy.mock.calls.map(([arg]) => arg?.queryKey)).toContainEqual(["playlist"]);
+  });
 });
 
 describe("useUpdateSmartPlaylist", () => {
@@ -129,9 +141,8 @@ describe("useDeleteSmartPlaylist", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockedApi.remove).toHaveBeenCalledWith(7);
-    expect(spy.mock.calls.map(([arg]) => arg?.queryKey)).toContainEqual([
-      "smartPlaylist",
-      7,
-    ]);
+    const keys = spy.mock.calls.map(([arg]) => arg?.queryKey);
+    expect(keys).toContainEqual(["smartPlaylist", 7]);
+    expect(keys).toContainEqual(["playlist"]);
   });
 });

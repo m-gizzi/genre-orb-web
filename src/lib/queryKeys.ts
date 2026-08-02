@@ -47,6 +47,7 @@ export const queryKeys = {
   playlistsInfinite: (search: string) =>
     [roots.playlists, "infinite", search] as const,
   likedPlaylist: [roots.playlists, "liked"] as const,
+  playlistDetails: [roots.playlist] as const,
   artistSyncStatus: [roots.artistSyncStatus] as const,
 
   smartPlaylists: [roots.smartPlaylists] as const,

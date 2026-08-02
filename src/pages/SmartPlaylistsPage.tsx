@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PlusIcon, SparklesIcon } from "lucide-react";
+import type { RuleGroup } from "@/api/client";
 import { useSmartPlaylistsPage } from "@/hooks/useSmartPlaylists";
 import { useUrlListParams } from "@/hooks/useUrlListParams";
 import {
@@ -8,6 +9,7 @@ import {
   smartPlaylistFiltersToParams,
 } from "@/lib/catalogFilterParams";
 import { CARD_PER_PAGE_OPTIONS } from "@/lib/config";
+import { countRules } from "@/lib/rules";
 import type { SmartPlaylistSort } from "@/lib/sorts";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -29,6 +31,13 @@ const SORT_LABELS: Record<SmartPlaylistSort, string> = {
   created_at: "Created",
   last_evaluated_at: "Last evaluated",
 };
+
+function ruleSummary(rules: RuleGroup) {
+  const count = countRules(rules);
+  if (count === 0) return "no rules yet";
+
+  return `${formatNumber(count)} ${count === 1 ? "rule" : "rules"}`;
+}
 
 export function SmartPlaylistsPage() {
   const { filters, applyPatch } = useUrlListParams(
@@ -111,9 +120,7 @@ export function SmartPlaylistsPage() {
               <p className="text-sm text-muted-foreground">
                 {formatNumber(smartPlaylist.source_count)}{" "}
                 {smartPlaylist.source_count === 1 ? "source" : "sources"} ·{" "}
-                {smartPlaylist.rules.rules.length === 0
-                  ? "no rules yet"
-                  : `${formatNumber(smartPlaylist.rules.rules.length)} rules`}
+                {ruleSummary(smartPlaylist.rules)}
               </p>
             </Card>
           ))}
