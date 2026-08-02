@@ -11,6 +11,10 @@ export const METADATA_FETCH_TIMEOUT_MS = 30_000;
 
 export const MESSAGE_TIMEOUT_MS = 5_000;
 
+export const PLAYLIST_DESCRIPTION_LIMIT = 300;
+
+export const PLAYLIST_PICKER_PAGE_SIZE = 30;
+
 export const SYNC_NOTICE_TIMEOUT_MS = 5_000;
 
 export const PER_PAGE_OPTIONS: readonly number[] = [10, 25, 50, 100];

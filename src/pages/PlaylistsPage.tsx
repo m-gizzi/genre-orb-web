@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { HeartIcon, ListMusicIcon } from "lucide-react";
+import { HeartIcon, ListMusicIcon, PlusIcon, SparklesIcon } from "lucide-react";
 import type { Playlist } from "@/api/client";
 import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
 import { useUrlListParams } from "@/hooks/useUrlListParams";
@@ -11,7 +12,6 @@ import { CARD_PER_PAGE_OPTIONS } from "@/lib/config";
 import type { PlaylistSort } from "@/lib/sorts";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CardGridSkeleton,
@@ -22,6 +22,9 @@ import {
   QueryState,
   SortControl,
 } from "@/components/catalog";
+import { CreatePlaylistDialog } from "@/components/playlists/CreatePlaylistDialog";
+import { MakeSmartDialog } from "@/components/smartPlaylists/MakeSmartDialog";
+import { SmartBadge } from "@/components/smartPlaylists/SmartBadge";
 import { formatDate, formatNumber } from "@/lib/format";
 
 const SORT_LABELS: Record<PlaylistSort, string> = {
@@ -35,6 +38,9 @@ export function PlaylistsPage() {
     parsePlaylistFilters,
     playlistFiltersToParams
   );
+
+  const [creating, setCreating] = useState(false);
+  const [convertTarget, setConvertTarget] = useState<Playlist | null>(null);
 
   const liked = useLikedPlaylist();
   const query = usePlaylistsPage(filters);
@@ -59,6 +65,9 @@ export function PlaylistsPage() {
               onSortChange={(sort) => applyPatch({ sort })}
               onOrderChange={(order) => applyPatch({ order })}
             />
+            <Button onClick={() => setCreating(true)}>
+              <PlusIcon /> New
+            </Button>
           </div>
         }
       />
@@ -91,22 +100,33 @@ export function PlaylistsPage() {
                 >
                   <ListMusicIcon className="size-4 shrink-0 text-muted-foreground" />
                   <span className="truncate font-medium">{playlist.name}</span>
-                  {playlist.is_liked_songs && (
-                    <Badge variant="secondary" className="shrink-0">
-                      Liked
-                    </Badge>
-                  )}
                 </Link>
-                <PlaylistSyncSwitch
-                  playlistId={playlist.id}
-                  name={playlist.name}
-                  syncEnabled={playlist.sync_enabled}
-                />
+                <div className="flex shrink-0 items-center gap-2">
+                  {playlist.smart_playlist_id != null && (
+                    <SmartBadge smartPlaylistId={playlist.smart_playlist_id} />
+                  )}
+                  <PlaylistSyncSwitch
+                    playlistId={playlist.id}
+                    name={playlist.name}
+                    syncEnabled={playlist.sync_enabled}
+                    locked={playlist.is_smart}
+                  />
+                </div>
               </div>
               <p className="text-sm text-muted-foreground">
                 {formatNumber(playlist.track_count)} tracks · synced{" "}
                 {formatDate(playlist.last_synced_at, "Never")}
               </p>
+              {!playlist.is_smart && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="-mx-2 mt-1 justify-start"
+                  onClick={() => setConvertTarget(playlist)}
+                >
+                  <SparklesIcon /> Make smart
+                </Button>
+              )}
             </Card>
           ))}
         </div>
@@ -120,6 +140,15 @@ export function PlaylistsPage() {
           />
         )}
       </QueryState>
+
+      <CreatePlaylistDialog open={creating} onOpenChange={setCreating} />
+      {convertTarget && (
+        <MakeSmartDialog
+          playlist={convertTarget}
+          open
+          onOpenChange={(open) => !open && setConvertTarget(null)}
+        />
+      )}
     </div>
   );
 }

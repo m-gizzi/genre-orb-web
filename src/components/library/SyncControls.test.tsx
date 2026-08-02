@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { Playlist } from "@/api/client";
+import type { ApiCollection, Playlist } from "@/api/client";
 import { useSyncStatus } from "@/contexts/SyncStatusContext";
-import { useLikedPlaylist, usePlaylists } from "@/hooks/usePlaylists";
+import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
 import { SyncControls } from "./SyncControls";
 
 vi.mock("@/contexts/SyncStatusContext", () => ({ useSyncStatus: vi.fn() }));
 vi.mock("@/hooks/usePlaylists", () => ({
-  usePlaylists: vi.fn(),
+  usePlaylistsPage: vi.fn(),
   useLikedPlaylist: vi.fn(),
 }));
 
 const mockedUseSyncStatus = vi.mocked(useSyncStatus);
-const mockedUsePlaylists = vi.mocked(usePlaylists);
+const mockedUsePlaylistsPage = vi.mocked(usePlaylistsPage);
 const mockedUseLikedPlaylist = vi.mocked(useLikedPlaylist);
 
 type SyncStatus = ReturnType<typeof useSyncStatus>;
@@ -53,17 +53,20 @@ function status(overrides: {
   };
 }
 
-function setPlaylists(playlists: Playlist[] | undefined) {
-  mockedUsePlaylists.mockReturnValue({
-    data: playlists,
-  } as ReturnType<typeof usePlaylists>);
+function collection(total: number): ApiCollection<Playlist> {
+  return { data: [], meta: { page: 1, per_page: 1, total, total_pages: total } };
+}
+
+function setCounts({ total, syncEnabled }: { total?: number; syncEnabled?: number }) {
+  mockedUsePlaylistsPage.mockImplementation((params) => {
+    const value = params?.sync_enabled ? syncEnabled : total;
+    return {
+      data: value == null ? undefined : collection(value),
+    } as ReturnType<typeof usePlaylistsPage>;
+  });
   mockedUseLikedPlaylist.mockReturnValue({
     data: undefined,
   } as ReturnType<typeof useLikedPlaylist>);
-}
-
-function playlist(overrides: Partial<Playlist> = {}): Playlist {
-  return { sync_enabled: false, ...overrides } as Playlist;
 }
 
 describe("SyncControls", () => {
@@ -71,7 +74,7 @@ describe("SyncControls", () => {
 
   it("hides the artist section when the user has no artists yet", () => {
     mockedUseSyncStatus.mockReturnValue(status({ artist: { artistsTotal: 0, artistsSynced: 0 } }));
-    setPlaylists([]);
+    setCounts({ total: 0, syncEnabled: 0 });
 
     render(<SyncControls enabled />);
 
@@ -83,7 +86,7 @@ describe("SyncControls", () => {
 
   it("shows the artist progress and enables Sync Genres when work remains", () => {
     mockedUseSyncStatus.mockReturnValue(status());
-    setPlaylists([]);
+    setCounts({ total: 0, syncEnabled: 0 });
 
     render(<SyncControls enabled />);
 
@@ -98,7 +101,7 @@ describe("SyncControls", () => {
     mockedUseSyncStatus.mockReturnValue(
       status({ artist: { artistsSynced: 10, hasArtistsToSync: false } })
     );
-    setPlaylists([]);
+    setCounts({ total: 0, syncEnabled: 0 });
 
     render(<SyncControls enabled />);
 
@@ -111,19 +114,28 @@ describe("SyncControls", () => {
   it("shows the library Sync button only when a playlist is sync-enabled", () => {
     mockedUseSyncStatus.mockReturnValue(status());
 
-    setPlaylists([playlist({ sync_enabled: false })]);
+    setCounts({ total: 1, syncEnabled: 0 });
     const { rerender } = render(<SyncControls enabled />);
     expect(screen.queryByRole("button", { name: "Sync" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
 
-    setPlaylists([playlist({ sync_enabled: true })]);
+    setCounts({ total: 1, syncEnabled: 1 });
     rerender(<SyncControls enabled />);
+    expect(screen.getByRole("button", { name: "Sync" })).toBeInTheDocument();
+  });
+
+  it("shows the Sync button when the only sync-enabled playlist is past page one", () => {
+    mockedUseSyncStatus.mockReturnValue(status());
+    setCounts({ total: 500, syncEnabled: 1 });
+
+    render(<SyncControls enabled />);
+
     expect(screen.getByRole("button", { name: "Sync" })).toBeInTheDocument();
   });
 
   it("labels the fetch button 'Fetch Playlists' when none are loaded", () => {
     mockedUseSyncStatus.mockReturnValue(status());
-    setPlaylists(undefined);
+    setCounts({});
 
     render(<SyncControls enabled />);
 
@@ -135,7 +147,7 @@ describe("SyncControls", () => {
   it("surfaces an artist status error with a retry", () => {
     const refetchArtistStatus = vi.fn();
     mockedUseSyncStatus.mockReturnValue(status({ artist: { isError: true, refetchStatus: refetchArtistStatus } }));
-    setPlaylists([]);
+    setCounts({ total: 0, syncEnabled: 0 });
 
     render(<SyncControls enabled />);
 

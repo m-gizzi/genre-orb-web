@@ -13,6 +13,8 @@ describe("invalidateLibraryQueries", () => {
     expect(invalidatedKeys).toEqual([
       ["playlists"],
       ["playlist"],
+      ["smartPlaylists"],
+      ["smartPlaylist"],
       ["tracks"],
       ["track"],
       ["artists"],

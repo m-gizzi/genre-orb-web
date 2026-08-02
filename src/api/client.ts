@@ -107,13 +107,74 @@ export interface SignupCredentials extends LoginCredentials {
 export interface Playlist {
   id: number;
   name: string;
+  description: string | null;
   spotify_id: string | null;
   is_liked_songs: boolean;
-  is_public: boolean;
   track_count: number;
   sync_enabled: boolean;
   last_synced_at: string | null;
   available_on_spotify: boolean;
+  is_smart: boolean;
+  smart_playlist_id: number | null;
+}
+
+export interface PlaylistSummary {
+  id: number;
+  name: string;
+  spotify_id: string | null;
+  is_liked_songs: boolean;
+}
+
+export interface RuleCondition {
+  field: string;
+  operator: string;
+  value: unknown;
+}
+
+export interface RuleGroup {
+  match: "all" | "any";
+  rules: Array<RuleCondition | RuleGroup>;
+  not?: boolean;
+}
+
+export interface SmartPlaylist {
+  id: number;
+  name: string;
+  is_enabled: boolean;
+  is_ready: boolean;
+  rules: RuleGroup;
+  match_count: number;
+  source_count: number;
+  target_playlist: Playlist;
+  last_evaluated_at: string | null;
+  last_pushed_at: string | null;
+}
+
+export interface SmartPlaylistDetail extends SmartPlaylist {
+  source_playlists: PlaylistSummary[];
+}
+
+export interface NewPlaylistAttributes {
+  name: string;
+  description?: string;
+}
+
+export interface PlaylistUpdate {
+  name?: string;
+  description?: string | null;
+  sync_enabled?: boolean;
+}
+
+export interface CreateSmartPlaylistInput {
+  target_playlist_id?: number;
+  target_playlist_attributes?: NewPlaylistAttributes;
+  source_playlist_ids: number[];
+}
+
+export interface UpdateSmartPlaylistInput {
+  is_enabled?: boolean;
+  rules?: RuleGroup;
+  source_playlist_ids?: number[];
 }
 
 export interface ArtistSummary {
@@ -243,6 +304,10 @@ export interface SearchListParams extends Pagination, Sortable {
 
 export interface CatalogListParams extends SearchListParams {
   genre?: string;
+}
+
+export interface PlaylistListParams extends SearchListParams {
+  sync_enabled?: boolean;
 }
 
 export interface AlbumListParams extends CatalogListParams {
@@ -381,13 +446,7 @@ export const libraryApi = {
 };
 
 export const playlistsApi = {
-  list: () =>
-    api
-      .get("api/v1/playlists", { searchParams: { per_page: 100 } })
-      .json<ApiCollection<Playlist>>()
-      .then((r) => r.data),
-
-  paginated: (params: SearchListParams = {}) =>
+  paginated: (params: PlaylistListParams = {}) =>
     api
       .get("api/v1/playlists", { searchParams: cleanParams(params) })
       .json<ApiCollection<Playlist>>(),
@@ -409,11 +468,44 @@ export const playlistsApi = {
       .get(`api/v1/playlists/${id}/tracks`, { searchParams: cleanParams(params) })
       .json<ApiCollection<Track>>(),
 
-  update: (id: number, data: { sync_enabled: boolean }) =>
+  create: (data: NewPlaylistAttributes) =>
+    api
+      .post("api/v1/playlists", { json: { playlist: data } })
+      .json<ApiResource<Playlist>>()
+      .then((r) => r.data),
+
+  update: (id: number, data: PlaylistUpdate) =>
     api
       .patch(`api/v1/playlists/${id}`, { json: { playlist: data } })
       .json<ApiResource<Playlist>>()
       .then((r) => r.data),
+};
+
+export const smartPlaylistsApi = {
+  paginated: (params: SearchListParams = {}) =>
+    api
+      .get("api/v1/smart_playlists", { searchParams: cleanParams(params) })
+      .json<ApiCollection<SmartPlaylist>>(),
+
+  get: (id: number) =>
+    api
+      .get(`api/v1/smart_playlists/${id}`)
+      .json<ApiResource<SmartPlaylistDetail>>()
+      .then((r) => r.data),
+
+  create: (data: CreateSmartPlaylistInput) =>
+    api
+      .post("api/v1/smart_playlists", { json: { smart_playlist: data } })
+      .json<ApiResource<SmartPlaylistDetail>>()
+      .then((r) => r.data),
+
+  update: (id: number, data: UpdateSmartPlaylistInput) =>
+    api
+      .patch(`api/v1/smart_playlists/${id}`, { json: { smart_playlist: data } })
+      .json<ApiResource<SmartPlaylistDetail>>()
+      .then((r) => r.data),
+
+  remove: (id: number) => api.delete(`api/v1/smart_playlists/${id}`).then(() => undefined),
 };
 
 export const artistsApi = {
