@@ -9,7 +9,7 @@ import {
   smartPlaylistFiltersToParams,
 } from "@/lib/catalogFilterParams";
 import { CARD_PER_PAGE_OPTIONS } from "@/lib/config";
-import { countRules } from "@/lib/rules";
+import { countRules } from "@/lib/ruleTree";
 import type { SmartPlaylistSort } from "@/lib/sorts";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";

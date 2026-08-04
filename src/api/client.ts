@@ -125,16 +125,52 @@ export interface PlaylistSummary {
   is_liked_songs: boolean;
 }
 
+export type RuleMatch = "all" | "any";
+export type RelativeUnit = "days" | "weeks" | "months" | "years";
+export type RuleScalar = string | number | boolean;
+
+export interface RelativeValue {
+  count: number;
+  unit: RelativeUnit;
+}
+
+export type RuleValue = RuleScalar | RuleScalar[] | RelativeValue | null;
+
 export interface RuleCondition {
   field: string;
   operator: string;
-  value: unknown;
+  value: RuleValue;
 }
 
 export interface RuleGroup {
-  match: "all" | "any";
+  match: RuleMatch;
   rules: Array<RuleCondition | RuleGroup>;
   not?: boolean;
+}
+
+export type RuleArity = "one" | "two" | "many" | "relative";
+export type RuleValueType = "text" | "number" | "duration" | "boolean" | "date";
+
+export interface RuleOperatorSpec {
+  key: string;
+  label: string;
+}
+
+export interface RuleFieldSpec {
+  key: string;
+  label: string;
+  value_type: RuleValueType;
+  suggest: "genres" | "artists" | "albums" | null;
+  operators: RuleOperatorSpec[];
+}
+
+export interface RuleSchema {
+  max_depth: number;
+  max_nodes: number;
+  match_types: RuleMatch[];
+  relative_units: RelativeUnit[];
+  operators: Record<string, { arity: RuleArity }>;
+  fields: RuleFieldSpec[];
 }
 
 export interface SmartPlaylist {
@@ -506,6 +542,12 @@ export const smartPlaylistsApi = {
       .then((r) => r.data),
 
   remove: (id: number) => api.delete(`api/v1/smart_playlists/${id}`).then(() => undefined),
+
+  schema: () =>
+    api
+      .get("api/v1/smart_playlists/schema")
+      .json<ApiResource<RuleSchema>>()
+      .then((r) => r.data),
 };
 
 export const artistsApi = {

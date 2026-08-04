@@ -11,6 +11,7 @@ import { PlaylistsPage } from "@/pages/PlaylistsPage";
 import { PlaylistDetailPage } from "@/pages/PlaylistDetailPage";
 import { SmartPlaylistsPage } from "@/pages/SmartPlaylistsPage";
 import { SmartPlaylistDetailPage } from "@/pages/SmartPlaylistDetailPage";
+import { SmartPlaylistEditPage } from "@/pages/SmartPlaylistEditPage";
 import { TracksPage } from "@/pages/TracksPage";
 import { TrackDetailPage } from "@/pages/TrackDetailPage";
 import { ArtistsPage } from "@/pages/ArtistsPage";
@@ -38,6 +39,10 @@ export function Router() {
             <Route
               path="/smart-playlists/:id"
               element={<SmartPlaylistDetailPage />}
+            />
+            <Route
+              path="/smart-playlists/:id/edit"
+              element={<SmartPlaylistEditPage />}
             />
             <Route path="/tracks" element={<TracksPage />} />
             <Route path="/tracks/:id" element={<TrackDetailPage />} />
