@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   RelativeUnit,
   RelativeValue,
@@ -17,20 +18,20 @@ import {
 } from "@/components/ui/select";
 import { isRelative, isScalar } from "@/lib/ruleTree";
 import { minutesToMs, msToMinutes, toNumber } from "@/lib/parse";
+import { booleanLabels } from "./booleanLabels";
 import { EntityAutocomplete } from "./EntityAutocomplete";
 import { TokenInput } from "./TokenInput";
 
-const EXPLICIT_LABELS: Record<string, string> = {
-  true: "Explicit",
-  false: "Clean",
-};
-
-const UNIT_LABELS: Record<RelativeUnit, string> = {
+const UNIT_LABELS: Record<string, string> = {
   days: "days",
   weeks: "weeks",
   months: "months",
   years: "years",
 };
+
+function unitLabel(unit: string): string {
+  return UNIT_LABELS[unit] ?? unit;
+}
 
 const MS_PER_MINUTE = 60_000;
 
@@ -146,10 +147,11 @@ function ScalarInput({
   };
 
   switch (field.value_type) {
-    case "boolean":
+    case "boolean": {
+      const labels = booleanLabels(field.key);
       return (
         <Select
-          items={EXPLICIT_LABELS}
+          items={labels}
           value={value == null ? "" : String(value)}
           onValueChange={(next) => onChange(next === "true")}
         >
@@ -157,7 +159,7 @@ function ScalarInput({
             <SelectValue placeholder="Choose…" />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(EXPLICIT_LABELS).map(([key, text]) => (
+            {Object.entries(labels).map(([key, text]) => (
               <SelectItem key={key} value={key}>
                 {text}
               </SelectItem>
@@ -165,6 +167,7 @@ function ScalarInput({
           </SelectContent>
         </Select>
       );
+    }
 
     case "number":
       return (
@@ -259,10 +262,14 @@ function RelativeDateInput({
   describedBy,
   onChange,
 }: RelativeDateInputProps) {
-  const unit = value?.unit ?? units[0] ?? "days";
-  const items = Object.fromEntries(units.map((u) => [u, UNIT_LABELS[u]]));
+  const [lastUnit, setLastUnit] = useState<RelativeUnit>(
+    value?.unit ?? units[0] ?? "days",
+  );
+  const unit = value?.unit ?? lastUnit;
+  const items = Object.fromEntries(units.map((u) => [u, unitLabel(u)]));
 
   function emit(count: number | undefined, nextUnit: RelativeUnit) {
+    setLastUnit(nextUnit);
     onChange(count == null ? null : { count, unit: nextUnit });
   }
 
@@ -298,7 +305,7 @@ function RelativeDateInput({
         <SelectContent>
           {units.map((u) => (
             <SelectItem key={u} value={u}>
-              {UNIT_LABELS[u]}
+              {unitLabel(u)}
             </SelectItem>
           ))}
         </SelectContent>

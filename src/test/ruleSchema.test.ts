@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { RuleSuggestSource, RuleValueType } from "@/api/client";
+import type {
+  RuleArity,
+  RuleFieldSpec,
+  RuleScalar,
+  RuleSuggestSource,
+  RuleValue,
+  RuleValueType,
+} from "@/api/client";
+import { arityOf, isConditionComplete } from "@/lib/ruleTree";
+import { booleanLabels } from "@/components/rules/booleanLabels";
 import { ruleSchema } from "./ruleSchema";
 
 describe("rule schema fixture", () => {
@@ -81,5 +90,68 @@ describe("rule schema fixture", () => {
 
     expect(relative.length).toBeGreaterThan(0);
     expect(ruleSchema.relative_units.length).toBeGreaterThan(0);
+  });
+
+  it("names both sides of every boolean field", () => {
+    for (const field of ruleSchema.fields) {
+      if (field.value_type !== "boolean") continue;
+
+      const labels = booleanLabels(field.key);
+      expect(labels.true, `${field.key} has no wording for true`).toBeTruthy();
+      expect(labels.false, `${field.key} has no wording for false`).toBeTruthy();
+    }
+  });
+
+  describe("every pairing the schema advertises", () => {
+    const ARITIES: RuleArity[] = ["one", "two", "many", "relative"];
+
+    function sampleScalar(field: RuleFieldSpec): RuleScalar {
+      switch (field.value_type) {
+        case "text":
+          return "metal";
+        case "number":
+        case "duration":
+          return field.constraints.min ?? 1;
+        case "boolean":
+          return true;
+        case "date":
+          return "2024-01-15";
+      }
+    }
+
+    function sampleValue(field: RuleFieldSpec, arity: RuleArity): RuleValue {
+      const scalar = sampleScalar(field);
+      switch (arity) {
+        case "one":
+          return scalar;
+        case "two":
+          return [scalar, scalar];
+        case "many":
+          return [scalar];
+        case "relative":
+          return { count: 1, unit: ruleSchema.relative_units[0]! };
+      }
+    }
+
+    for (const field of ruleSchema.fields) {
+      for (const operator of field.operators) {
+        it(`can complete ${field.key} ${operator.key}`, () => {
+          const arity = arityOf(ruleSchema, operator.key);
+          expect(ARITIES, `${operator.key} has an arity the builder cannot render`)
+            .toContain(arity);
+
+          expect(
+            isConditionComplete(
+              {
+                field: field.key,
+                operator: operator.key,
+                value: sampleValue(field, arity),
+              },
+              ruleSchema,
+            ),
+          ).toBe(true);
+        });
+      }
+    }
   });
 });

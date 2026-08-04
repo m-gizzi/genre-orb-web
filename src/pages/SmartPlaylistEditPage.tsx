@@ -29,6 +29,7 @@ import {
   incompleteCount,
   moveNode,
   removeNode,
+  structuralErrors,
   toDraft,
   toRules,
   unwrapGroup,
@@ -82,8 +83,10 @@ function RuleEditor({
   const payload = toRules(draft);
   const isDirty = canonicalRules(payload) !== saved;
   const unfinished = incompleteCount(draft, schema);
+  const structural = structuralErrors(draft, schema);
   const ruleCount = countRules(draft);
   const detailPath = `/smart-playlists/${smartPlaylist.id}`;
+  const blocked = unfinished > 0 || structural.length > 0;
 
   // Covers closing the tab; useBlocker below covers navigating within the app.
   useEffect(() => {
@@ -137,7 +140,17 @@ function RuleEditor({
 
       {update.isError && (
         <ul className="mb-4 space-y-1">
-          {apiErrorMessages(update.error).map((message) => (
+          {apiErrorMessages(update.error).map((message, index) => (
+            <li key={`${index}:${message}`} className="text-sm text-destructive">
+              {message}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {structural.length > 0 && (
+        <ul className="mb-4 space-y-1">
+          {structural.map((message) => (
             <li key={message} className="text-sm text-destructive">
               {message}
             </li>
@@ -172,9 +185,9 @@ function RuleEditor({
             </Button>
             <Button
               onClick={save}
-              disabled={!isDirty || unfinished > 0 || update.isPending}
+              disabled={!isDirty || blocked || update.isPending}
               title={
-                unfinished > 0 ? "Finish every rule before saving." : undefined
+                blocked ? "Finish every rule before saving." : undefined
               }
             >
               <SaveIcon /> {update.isPending ? "Saving…" : "Save rules"}

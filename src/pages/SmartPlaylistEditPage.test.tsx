@@ -2,7 +2,13 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Playlist, RuleGroup, SmartPlaylistDetail } from "@/api/client";
-import { smartPlaylistsApi, genresApi, artistsApi, albumsApi } from "@/api/client";
+import {
+  smartPlaylistsApi,
+  genresApi,
+  artistsApi,
+  albumsApi,
+  withApiErrorMessages,
+} from "@/api/client";
 import { renderWithProviders } from "@/test/utils";
 import { ruleSchema } from "@/test/ruleSchema";
 import { SmartPlaylistEditPage } from "./SmartPlaylistEditPage";
@@ -115,6 +121,36 @@ describe("SmartPlaylistEditPage", () => {
     expect(screen.getByRole("button", { name: /Save rules/ })).toBeDisabled();
   });
 
+  it("refuses to save a rule set that arrived nested past the limit", async () => {
+    let rules: RuleGroup = { match: "all", rules: [complete.rules[0]!] };
+    for (let level = 0; level <= ruleSchema.max_depth; level += 1) {
+      rules = { match: "all", rules: [rules] };
+    }
+    renderEditor(rules);
+
+    expect(
+      await screen.findByText(
+        new RegExp(`nest ${ruleSchema.max_depth} levels deep`),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Save rules/ })).toBeDisabled();
+  });
+
+  it("refuses to save a rule set that arrived over the rule cap", async () => {
+    const rules = Array.from(
+      { length: ruleSchema.max_nodes },
+      () => complete.rules[0]!,
+    );
+    renderEditor({ match: "all", rules });
+
+    expect(
+      await screen.findByText(
+        new RegExp(`at most ${ruleSchema.max_nodes} rules`),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Save rules/ })).toBeDisabled();
+  });
+
   it("refuses to save while a nested group is empty", async () => {
     renderEditor(complete);
 
@@ -204,12 +240,13 @@ describe("SmartPlaylistEditPage", () => {
   });
 
   it("shows every rule the server rejected, not just the first", async () => {
-    const error = Object.assign(new Error("Rules must be a whole number at rule 1"), {
-      [Symbol.for("genreOrb.apiErrorMessages")]: [
+    const error = withApiErrorMessages(
+      new Error("Rules must be a whole number at rule 1"),
+      [
         "Rules must be a whole number at rule 1",
         "Rules must be between 0 and 100 at rule 2",
       ],
-    });
+    );
     mockedApi.update.mockRejectedValue(error);
     renderEditor({ match: "all", rules: [] });
 

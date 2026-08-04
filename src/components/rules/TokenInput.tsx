@@ -37,6 +37,8 @@ export function TokenInput({
   }
 
   function removeAt(index: number) {
+    if (index < 0 || index >= values.length) return;
+
     onChange(values.filter((_, i) => i !== index));
   }
 
@@ -67,7 +69,7 @@ export function TokenInput({
       {values.length > 0 && (
         <ul className="flex flex-wrap gap-1">
           {values.map((value, index) => (
-            <li key={value}>
+            <li key={`${index}:${value}`}>
               <Badge variant="secondary" className="gap-1 px-2">
                 <span className="max-w-[12rem] truncate">{value}</span>
                 <button

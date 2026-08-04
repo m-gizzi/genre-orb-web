@@ -1,14 +1,19 @@
 import { describe, it, expect } from "vitest";
-import type { RuleCondition, RuleGroup } from "@/api/client";
+import type { RuleCondition, RuleGroup, RuleValueType } from "@/api/client";
 import { ruleSchema as schema } from "@/test/ruleSchema";
 import {
   addNode,
   arityOf,
+  canDuplicateNode,
+  canWrapNode,
   canonicalRules,
   coerceValue,
   countNodes,
   countRules,
   depthOf,
+  groupHeight,
+  structuralErrors,
+  subtreeSize,
   duplicateNode,
   fieldSpec,
   fitsField,
@@ -522,6 +527,16 @@ describe("fitsField", () => {
     expect(fitsField("15/01/2024", field("date_added"))).toBe(false);
     expect(fitsField("2024-02-31", field("date_added"))).toBe(false);
   });
+
+  it("fits nothing to a value type this build cannot render", () => {
+    const exotic = {
+      ...field("genre"),
+      value_type: "waveform" as RuleValueType,
+    };
+
+    expect(fitsField("anything", exotic)).toBe(false);
+    expect(fitsField(1, exotic)).toBe(false);
+  });
 });
 
 describe("isValueComplete", () => {
@@ -658,5 +673,120 @@ describe("coerceValue", () => {
 
   it("clears a relative value that cannot become a scalar", () => {
     expect(coerceValue({ count: 30, unit: "days" }, "relative", "one")).toBeNull();
+  });
+});
+
+describe("subtreeSize / groupHeight", () => {
+  it("counts a condition as a single node with no group levels", () => {
+    expect(subtreeSize(cond())).toBe(1);
+    expect(groupHeight(cond())).toBe(0);
+  });
+
+  it("counts a group plus everything under it", () => {
+    const tree = grp([cond(), grp([cond(), cond()])]);
+
+    expect(subtreeSize(tree)).toBe(5);
+    expect(groupHeight(tree)).toBe(2);
+  });
+
+  it("measures the deepest branch, not the first", () => {
+    expect(groupHeight(grp([grp([]), grp([grp([grp([])])])]))).toBe(4);
+  });
+});
+
+describe("canWrapNode", () => {
+  /** A chain of nested groups, each holding one condition. */
+  function chain(levels: number): DraftGroup {
+    let root = grp([cond()]);
+    let path: number[] = [];
+    for (let level = 2; level <= levels; level += 1) {
+      root = addNode(root, path, grp([cond()]));
+      path = [...path, root.rules.length - 1];
+    }
+    return root;
+  }
+
+  it("refuses to wrap the root, which has no parent to hold the wrapper", () => {
+    expect(canWrapNode(grp([cond()]), [], schema)).toBe(false);
+  });
+
+  it("wraps a condition sitting at the depth limit, which the server allows", () => {
+    const root = chain(schema.max_depth);
+    // The condition inside the group at depth 4; wrapping it makes a group at
+    // depth 5, which is exactly the limit.
+    const deepest = [1, 1, 1, 0];
+
+    expect(depthOf(deepest)).toBe(schema.max_depth);
+    expect(nodeAt(root, deepest)).toBeDefined();
+    expect(canWrapNode(root, deepest, schema)).toBe(true);
+  });
+
+  it("refuses a wrap that would push the node's own groups past the limit", () => {
+    const root = chain(schema.max_depth);
+
+    // The group at depth 2 carries three more levels; wrapping it makes six.
+    expect(groupHeight(nodeAt(root, [1])!)).toBe(schema.max_depth - 1);
+    expect(canWrapNode(root, [1], schema)).toBe(false);
+  });
+
+  it("refuses a wrap once the wrapper itself would breach the node cap", () => {
+    let root = grp([]);
+    while (countNodes(root) < schema.max_nodes) {
+      root = addNode(root, [], cond());
+    }
+
+    expect(countNodes(root)).toBe(schema.max_nodes);
+    expect(canWrapNode(root, [0], schema)).toBe(false);
+  });
+});
+
+describe("canDuplicateNode", () => {
+  it("allows a copy that fits inside the node cap", () => {
+    expect(canDuplicateNode(grp([cond(), cond()]), [0], schema)).toBe(true);
+  });
+
+  it("refuses to duplicate a group whose copy would breach the cap", () => {
+    let root = grp([grp([cond(), cond(), cond()])]);
+    while (countNodes(root) < schema.max_nodes - 1) {
+      root = addNode(root, [], cond());
+    }
+
+    expect(countNodes(root)).toBe(schema.max_nodes - 1);
+    expect(subtreeSize(nodeAt(root, [0])!)).toBe(4);
+    expect(canDuplicateNode(root, [0], schema)).toBe(false);
+  });
+
+  it("still allows a single condition at one below the cap", () => {
+    let root = grp([]);
+    while (countNodes(root) < schema.max_nodes - 1) {
+      root = addNode(root, [], cond());
+    }
+
+    expect(canDuplicateNode(root, [0], schema)).toBe(true);
+  });
+});
+
+describe("structuralErrors", () => {
+  it("says nothing about a tree inside both limits", () => {
+    expect(structuralErrors(grp([cond(), grp([cond()])]), schema)).toEqual([]);
+  });
+
+  it("reports a tree nested past the depth limit", () => {
+    let tree = grp([cond()]);
+    for (let level = 0; level <= schema.max_depth; level += 1) {
+      tree = grp([tree]);
+    }
+
+    expect(structuralErrors(tree, schema)).toEqual([
+      expect.stringContaining(`nest ${schema.max_depth} levels deep`),
+    ]);
+  });
+
+  it("reports a tree over the node cap", () => {
+    const rules = Array.from({ length: schema.max_nodes }, () => cond());
+
+    expect(structuralErrors(grp(rules), schema)).toEqual([
+      expect.stringContaining(`at most ${schema.max_nodes} rules`),
+    ]);
   });
 });

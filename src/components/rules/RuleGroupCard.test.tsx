@@ -206,6 +206,72 @@ describe("RuleGroupCard", () => {
     expect(screen.getByRole("button", { name: /Group/ })).toBeDisabled();
   });
 
+  describe("limits the menu actions respect", () => {
+    async function menuItem(owner: string, action: RegExp) {
+      await userEvent.click(
+        screen.getByRole("button", { name: `Actions for ${owner}` }),
+      );
+      return screen.findByRole("menuitem", { name: action });
+    }
+
+    const WRAP = /Wrap in group/;
+    const DUPLICATE = /Duplicate/;
+
+    it("refuses to wrap a group whose subtree would then breach the depth limit", async () => {
+      renderCard(nest(ruleSchema.max_depth));
+
+      expect(await menuItem("group 1", WRAP)).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    });
+
+    it("still wraps a condition at the depth limit, which the server allows", async () => {
+      let group: RuleGroup = { match: "all", rules: [cond] };
+      for (let level = 2; level < ruleSchema.max_depth; level += 1) {
+        group = { match: "all", rules: [group] };
+      }
+      renderCard(group);
+
+      const label = deepLabel(ruleSchema.max_depth - 1);
+
+      expect(await menuItem(`rule ${label}.1, Genre`, WRAP)).not.toHaveAttribute(
+        "aria-disabled",
+      );
+    });
+
+    it("refuses to wrap once the wrapper itself would breach the rule cap", async () => {
+      const rules = Array.from({ length: ruleSchema.max_nodes - 1 }, () => cond);
+      renderCard({ match: "all", rules });
+
+      expect(await menuItem("rule 1, Genre", WRAP)).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    });
+
+    it("refuses to duplicate a group whose copy would breach the rule cap", async () => {
+      const filler = Array.from({ length: ruleSchema.max_nodes - 4 }, () => cond);
+      renderCard({
+        match: "all",
+        rules: [{ match: "any", rules: [cond, cond] }, ...filler],
+      });
+
+      expect(await menuItem("group 1", DUPLICATE)).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    });
+
+    it("still duplicates a single condition with room left under the cap", async () => {
+      renderCard({ match: "all", rules: [cond, cond] });
+
+      expect(await menuItem("rule 1, Genre", DUPLICATE)).not.toHaveAttribute(
+        "aria-disabled",
+      );
+    });
+  });
+
   describe("read-only", () => {
     it("describes the tree in words with no controls", () => {
       renderCard(

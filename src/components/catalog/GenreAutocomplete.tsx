@@ -18,7 +18,7 @@ export function GenreAutocomplete({
 }: GenreAutocompleteProps) {
   const [query, setQuery] = useState("");
   const debounced = useDebouncedValue(query, 250);
-  const { data } = useGenres(
+  const { data, isFetching } = useGenres(
     { search: debounced || undefined, per_page: 8 },
     valueId == null
   );
@@ -50,6 +50,7 @@ export function GenreAutocomplete({
       onSelect={(option) =>
         onSelect({ id: Number(option.id), name: option.label })
       }
+      loading={isFetching || query.trim() !== debounced.trim()}
       ariaLabel="Filter by genre"
       placeholder="Genre…"
       className="max-w-[12rem]"

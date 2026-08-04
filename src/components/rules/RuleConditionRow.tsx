@@ -39,6 +39,7 @@ export interface RowActions {
   canMoveUp: boolean;
   canMoveDown: boolean;
   canWrap: boolean;
+  canDuplicate: boolean;
 }
 
 interface ConditionShape {
@@ -105,6 +106,16 @@ function EditableRow({
   const complete = isConditionComplete(condition, schema);
   const arity = arityOf(schema, condition.operator);
 
+  const knownOperator = field.operators.some(
+    (op) => op.key === condition.operator,
+  );
+  const operatorItems = knownOperator
+    ? operatorLabels(field)
+    : {
+        ...operatorLabels(field),
+        [condition.operator]: `“${condition.operator}” — unavailable`,
+      };
+
   function changeField(key: string | null) {
     const next = key ? fieldSpec(schema, key) : undefined;
     if (next) onChange(blankCondition(next));
@@ -149,7 +160,7 @@ function EditableRow({
       </Select>
 
       <Select
-        items={operatorLabels(field)}
+        items={operatorItems}
         value={condition.operator}
         onValueChange={changeOperator}
       >
@@ -165,6 +176,11 @@ function EditableRow({
               {op.label}
             </SelectItem>
           ))}
+          {!knownOperator && (
+            <SelectItem value={condition.operator} disabled>
+              {operatorItems[condition.operator]}
+            </SelectItem>
+          )}
         </SelectContent>
       </Select>
 
@@ -180,7 +196,7 @@ function EditableRow({
 
       {!complete && (
         <span id={errorId} className="self-center text-xs text-destructive">
-          Needs a value
+          {knownOperator ? "Needs a value" : "Pick an available operator"}
         </span>
       )}
 
@@ -220,7 +236,10 @@ export function RowMenu({ label, actions }: { label: string; actions: RowActions
         <DropdownMenuItem disabled={!actions.canWrap} onClick={actions.onWrap}>
           <GroupIcon /> Wrap in group
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={actions.onDuplicate}>
+        <DropdownMenuItem
+          disabled={!actions.canDuplicate}
+          onClick={actions.onDuplicate}
+        >
           <CopyIcon /> Duplicate
         </DropdownMenuItem>
         <DropdownMenuSeparator />

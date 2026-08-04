@@ -106,6 +106,27 @@ describe("TokenInput", () => {
     expect(onChange).toHaveBeenCalledWith(["Gojira"]);
   });
 
+  it("stays quiet when backspace has no chip to remove", async () => {
+    mockedArtists.list.mockResolvedValue(page([]));
+    const { onChange } = renderTokens([]);
+
+    await userEvent.click(tokenInput());
+    await userEvent.keyboard("{Backspace}");
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps repeated values distinct, since the server allows them", async () => {
+    mockedArtists.list.mockResolvedValue(page([]));
+    const { onChange } = renderTokens(["Gojira", "Gojira"]);
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove Gojira" })[0]!);
+
+    expect(onChange).toHaveBeenCalledWith(["Gojira"]);
+  });
+
   it("does not suggest a value already chosen", async () => {
     mockedArtists.list.mockResolvedValue(page(["Gojira", "Opeth"]));
     renderTokens(["Gojira"]);

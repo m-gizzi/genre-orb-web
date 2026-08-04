@@ -44,6 +44,21 @@ export function countNodes(group: RuleGroup): number {
   return countRules(group) + 1;
 }
 
+/** Nodes a subtree contributes to that cap, the node itself included. */
+export function subtreeSize(node: RuleCondition | RuleGroup): number {
+  return isRuleGroup(node) ? countNodes(node) : 1;
+}
+
+/**
+ * How many group levels a subtree occupies. A condition occupies none, so
+ * wrapping one only adds the wrapper; a group three deep adds three.
+ */
+export function groupHeight(node: RuleCondition | RuleGroup): number {
+  if (!isRuleGroup(node)) return 0;
+
+  return 1 + Math.max(0, ...node.rules.map(groupHeight));
+}
+
 /** Depth of the group at `path`, where the root group sits at depth 1. */
 export function depthOf(path: RulePath): number {
   return path.length + 1;
@@ -336,6 +351,8 @@ export function fitsField(value: RuleScalar, field: RuleFieldSpec): boolean {
       return typeof value === "boolean";
     case "date":
       return typeof value === "string" && ISO_DATE.test(value) && isRealDate(value);
+    default:
+      return false;
   }
 }
 
@@ -380,6 +397,60 @@ export function isConditionComplete(
     field,
     schema,
   );
+}
+
+/**
+ * Wrapping adds a group above the node, so the node's own levels move down and
+ * the wrapper itself counts against the node cap.
+ */
+export function canWrapNode(
+  root: DraftGroup,
+  path: RulePath,
+  schema: RuleSchema,
+): boolean {
+  const node = nodeAt(root, path);
+  if (!node || path.length === 0) return false;
+  if (countNodes(root) + 1 > schema.max_nodes) return false;
+
+  return depthOf(path) + groupHeight(node) <= schema.max_depth;
+}
+
+/** Duplicating copies the whole subtree, so all of it counts against the cap. */
+export function canDuplicateNode(
+  root: DraftGroup,
+  path: RulePath,
+  schema: RuleSchema,
+): boolean {
+  const node = nodeAt(root, path);
+  if (!node || path.length === 0) return false;
+
+  return countNodes(root) + subtreeSize(node) <= schema.max_nodes;
+}
+
+/**
+ * Limits the server enforces on the shape of the tree. The buttons above stop
+ * you reaching these, so anything here came from a rule set built elsewhere.
+ */
+export function structuralErrors(
+  root: DraftGroup,
+  schema: RuleSchema,
+): string[] {
+  const errors: string[] = [];
+  const nodes = countNodes(root);
+  const height = groupHeight(root);
+
+  if (nodes > schema.max_nodes) {
+    errors.push(
+      `A rule set can hold at most ${schema.max_nodes} rules — this one has ${nodes}.`,
+    );
+  }
+  if (height > schema.max_depth) {
+    errors.push(
+      `Groups can nest ${schema.max_depth} levels deep — this one reaches ${height}.`,
+    );
+  }
+
+  return errors;
 }
 
 export function incompleteCount(group: DraftGroup, schema: RuleSchema): number {

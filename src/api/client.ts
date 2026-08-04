@@ -3,9 +3,16 @@ import { API_URL, SPOTIFY_CALLBACK_PATH } from "@/lib/config";
 
 export { API_URL };
 
-const ALL_MESSAGES = Symbol.for("genreOrb.apiErrorMessages");
+const ALL_MESSAGES = Symbol("apiErrorMessages");
 
 type WithMessages = { [ALL_MESSAGES]?: string[] };
+
+export function withApiErrorMessages<E>(error: E, messages: string[]): E {
+  if (error && typeof error === "object") {
+    (error as WithMessages)[ALL_MESSAGES] = messages;
+  }
+  return error;
+}
 
 export async function extractApiError(
   error: unknown,
@@ -23,7 +30,7 @@ export async function extractApiError(
       if (messages.length === 0 && body?.error) messages.push(body.error);
 
       if (messages.length > 0) {
-        (error as unknown as WithMessages)[ALL_MESSAGES] = messages;
+        withApiErrorMessages(error, messages);
         return messages[0]!;
       }
     } catch {

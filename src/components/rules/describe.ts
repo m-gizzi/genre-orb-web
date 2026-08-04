@@ -1,6 +1,7 @@
-import type { RuleCondition, RuleSchema } from "@/api/client";
+import type { RuleCondition, RuleFieldSpec, RuleSchema } from "@/api/client";
 import { arityOf, fieldSpec, isRelative } from "@/lib/ruleTree";
 import { msToMinutes } from "@/lib/parse";
+import { booleanLabel } from "./booleanLabels";
 
 export function describeCondition(
   condition: RuleCondition,
@@ -24,21 +25,21 @@ function describeValue(condition: RuleCondition, schema: RuleSchema): string {
       return Array.isArray(value) ? value.map(quote).join(", ") : "—";
     case "two":
       return Array.isArray(value) && value.length === 2
-        ? `${scalar(value[0], field?.value_type)} and ${scalar(value[1], field?.value_type)}`
+        ? `${scalar(value[0], field)} and ${scalar(value[1], field)}`
         : "—";
     case "relative":
       return isRelative(value) ? `${value.count} ${value.unit}` : "—";
     default:
-      return scalar(value, field?.value_type);
+      return scalar(value, field);
   }
 }
 
-function scalar(value: unknown, valueType?: string): string {
+function scalar(value: unknown, field?: RuleFieldSpec): string {
   if (value == null || value === "") return "—";
-  if (valueType === "duration" && typeof value === "number") {
+  if (field?.value_type === "duration" && typeof value === "number") {
     return `${msToMinutes(value)} min`;
   }
-  if (typeof value === "boolean") return value ? "Explicit" : "Clean";
+  if (typeof value === "boolean") return booleanLabel(field?.key ?? "", value);
   if (typeof value === "number") return String(value);
   return quote(value);
 }

@@ -4,7 +4,7 @@ export function toNumber(value: string): number | undefined {
 }
 
 export function msToMinutes(ms: number | undefined): string {
-  return ms == null ? "" : String(Math.round(ms / 60000));
+  return ms == null ? "" : String(ms / 60000);
 }
 
 export function minutesToMs(value: string): number | undefined {

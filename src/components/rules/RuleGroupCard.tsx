@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  canDuplicateNode,
   canMove,
+  canWrapNode,
   countNodes,
   depthOf,
   isRuleGroup,
@@ -79,7 +81,8 @@ function EditableGroup({
     onRemove: () => handlers.onRemoveNode(path),
     canMoveUp: canMove(root, path, -1),
     canMoveDown: canMove(root, path, 1),
-    canWrap: !atMaxDepth,
+    canWrap: canWrapNode(root, path, schema),
+    canDuplicate: canDuplicateNode(root, path, schema),
   };
 
   return (
@@ -230,7 +233,8 @@ function ChildNode({ node, root, schema, path, handlers }: ChildNodeProps) {
         onRemove: () => handlers.onRemoveNode(path),
         canMoveUp: canMove(root, path, -1),
         canMoveDown: canMove(root, path, 1),
-        canWrap: depthOf(path) < schema.max_depth,
+        canWrap: canWrapNode(root, path, schema),
+        canDuplicate: canDuplicateNode(root, path, schema),
       }}
     />
   );

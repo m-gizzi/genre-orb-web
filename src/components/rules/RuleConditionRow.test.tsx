@@ -35,6 +35,7 @@ function renderRow(initial: RuleCondition, { editable = true } = {}) {
     canMoveUp: true,
     canMoveDown: true,
     canWrap: true,
+    canDuplicate: true,
   };
 
   function Harness() {
@@ -191,6 +192,24 @@ describe("RuleConditionRow", () => {
     });
   });
 
+  it("keeps the chosen unit when the count is cleared and retyped", async () => {
+    const { onChange } = renderRow({
+      field: "date_added",
+      operator: "in_the_last",
+      value: { count: 6, unit: "months" },
+    });
+
+    const count = screen.getByRole("spinbutton", { name: "Date added count" });
+    await userEvent.clear(count);
+    await userEvent.type(count, "3");
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      field: "date_added",
+      operator: "in_the_last",
+      value: { count: 3, unit: "months" },
+    });
+  });
+
   it("offers a plain choice for a boolean field", async () => {
     const { onChange } = renderRow({
       field: "explicit",
@@ -204,6 +223,31 @@ describe("RuleConditionRow", () => {
       field: "explicit",
       operator: "equals",
       value: false,
+    });
+  });
+
+  it("names an operator the field no longer offers instead of showing a blank select", async () => {
+    renderRow({ field: "genre", operator: "matches_sql", value: "x" });
+
+    expect(
+      screen.getByRole("combobox", { name: "Operator for rule 1" }),
+    ).toHaveTextContent("“matches_sql” — unavailable");
+    expect(screen.getByText("Pick an available operator")).toBeInTheDocument();
+  });
+
+  it("lets a rule with an unavailable operator be repaired in place", async () => {
+    const { onChange } = renderRow({
+      field: "genre",
+      operator: "matches_sql",
+      value: "metal",
+    });
+
+    await chooseFrom("Operator for rule 1", "contains");
+
+    expect(onChange).toHaveBeenCalledWith({
+      field: "genre",
+      operator: "contains",
+      value: "metal",
     });
   });
 
