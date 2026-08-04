@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { PencilIcon, SparklesIcon } from "lucide-react";
 import { usePlaylist, usePlaylistTracks } from "@/hooks/usePlaylistDetail";
 import { usePagination } from "@/hooks/usePagination";
+import { pageStartIndex } from "@/lib/pagination";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,11 @@ export function PlaylistDetailPage() {
           />
         }
       >
-        <TrackTable tracks={trackRows} numbering="index" />
+        <TrackTable
+          tracks={trackRows}
+          numbering="index"
+          startIndex={pageStartIndex(tracks.data?.meta)}
+        />
         {tracks.data && (
           <Pagination
             meta={tracks.data.meta}
