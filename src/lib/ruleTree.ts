@@ -26,11 +26,13 @@ function nextUid(): string {
   return `n${uidCounter}`;
 }
 
-export function isRuleGroup(node: DraftNode): node is DraftGroup {
+export function isRuleGroup<C extends RuleCondition, G extends RuleGroup>(
+  node: C | G,
+): node is G {
   return "match" in node && "rules" in node;
 }
 
-export function countRules(group: DraftGroup): number {
+export function countRules(group: RuleGroup): number {
   return group.rules.reduce(
     (total, node) => total + 1 + (isRuleGroup(node) ? countRules(node) : 0),
     0,
@@ -38,7 +40,7 @@ export function countRules(group: DraftGroup): number {
 }
 
 /** Nodes counted against the schema's max_nodes cap — the root counts too. */
-export function countNodes(group: DraftGroup): number {
+export function countNodes(group: RuleGroup): number {
   return countRules(group) + 1;
 }
 
@@ -153,9 +155,7 @@ export function toDraft(group: RuleGroup): DraftGroup {
     ...group,
     uid: nextUid(),
     rules: group.rules.map((node) =>
-      "match" in node && "rules" in node
-        ? toDraft(node)
-        : { ...(node as RuleCondition), uid: nextUid() },
+      isRuleGroup(node) ? toDraft(node) : { ...node, uid: nextUid() },
     ),
   };
 }

@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import type { ApiCollection, Artist } from "@/api/client";
 import { artistsApi } from "@/api/client";
 import { renderWithProviders } from "@/test/utils";
+import { ruleSchema } from "@/test/ruleSchema";
 import { TokenInput } from "./TokenInput";
 
 vi.mock("@/api/client", async (importOriginal) => {
@@ -31,7 +32,7 @@ function page(names: string[]): ApiCollection<Artist> {
 
 afterEach(() => vi.clearAllMocks());
 
-function renderTokens(initial: string[] = []) {
+function renderTokens(initial: string[] = [], maxValues = ruleSchema.max_list_size) {
   const onChange = vi.fn();
 
   function Harness() {
@@ -41,6 +42,7 @@ function renderTokens(initial: string[] = []) {
         values={values}
         suggest="artists"
         label="Artist"
+        maxValues={maxValues}
         onChange={(next) => {
           onChange(next);
           setValues(next);
@@ -50,15 +52,17 @@ function renderTokens(initial: string[] = []) {
   }
 
   renderWithProviders(<Harness />, { withQuery: true });
-  return { onChange, input: screen.getByRole("combobox", { name: "Artist values" }) };
+  return { onChange };
 }
+
+const tokenInput = () => screen.getByRole("combobox", { name: "Artist values" });
 
 describe("TokenInput", () => {
   it("adds free text on Enter, so a value need not be in the library yet", async () => {
     mockedArtists.list.mockResolvedValue(page([]));
     const { onChange } = renderTokens();
 
-    await userEvent.type(screen.getByRole("combobox", { name: "Artist values" }), "Gojira{Enter}");
+    await userEvent.type(tokenInput(), "Gojira{Enter}");
 
     expect(onChange).toHaveBeenCalledWith(["Gojira"]);
     expect(screen.getByText("Gojira")).toBeInTheDocument();
@@ -68,7 +72,7 @@ describe("TokenInput", () => {
     mockedArtists.list.mockResolvedValue(page(["Meshuggah"]));
     const { onChange } = renderTokens();
 
-    await userEvent.type(screen.getByRole("combobox", { name: "Artist values" }), "mesh");
+    await userEvent.type(tokenInput(), "mesh");
     await userEvent.click(await screen.findByRole("option", { name: "Meshuggah" }));
 
     expect(onChange).toHaveBeenCalledWith(["Meshuggah"]);
@@ -78,7 +82,7 @@ describe("TokenInput", () => {
     mockedArtists.list.mockResolvedValue(page([]));
     const { onChange } = renderTokens(["Gojira"]);
 
-    await userEvent.type(screen.getByRole("combobox", { name: "Artist values" }), "Gojira{Enter}");
+    await userEvent.type(tokenInput(), "Gojira{Enter}");
 
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -94,9 +98,9 @@ describe("TokenInput", () => {
 
   it("backspaces the last chip from an empty input", async () => {
     mockedArtists.list.mockResolvedValue(page([]));
-    const { onChange, input } = renderTokens(["Gojira", "Opeth"]);
+    const { onChange } = renderTokens(["Gojira", "Opeth"]);
 
-    await userEvent.click(input);
+    await userEvent.click(tokenInput());
     await userEvent.keyboard("{Backspace}");
 
     expect(onChange).toHaveBeenCalledWith(["Gojira"]);
@@ -106,9 +110,26 @@ describe("TokenInput", () => {
     mockedArtists.list.mockResolvedValue(page(["Gojira", "Opeth"]));
     renderTokens(["Gojira"]);
 
-    await userEvent.type(screen.getByRole("combobox", { name: "Artist values" }), "o");
+    await userEvent.type(tokenInput(), "o");
 
     expect(await screen.findByRole("option", { name: "Opeth" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Gojira" })).not.toBeInTheDocument();
+  });
+
+  it("stops taking values at the cap the server enforces", () => {
+    mockedArtists.list.mockResolvedValue(page([]));
+    renderTokens(["Gojira", "Opeth"], 2);
+
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(screen.getByText("2 values is the most one rule can match.")).toBeInTheDocument();
+  });
+
+  it("takes values again once one is removed", async () => {
+    mockedArtists.list.mockResolvedValue(page([]));
+    renderTokens(["Gojira", "Opeth"], 2);
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove Gojira" }));
+
+    expect(tokenInput()).toBeInTheDocument();
   });
 });
