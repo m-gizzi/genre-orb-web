@@ -255,16 +255,20 @@ export interface UpdateSmartPlaylistInput {
   source_playlist_ids?: number[];
 }
 
-export interface RulePreviewMeta extends PaginationMeta {
+export interface RuleMatchesMeta extends PaginationMeta {
   source_track_count: number;
+  /** Set only when the run was recorded, which happens exactly when the rules
+   *  evaluated were the playlist's own saved, non-empty set. */
+  evaluated_at: string | null;
 }
 
-export interface RulePreview {
+export interface RuleMatches {
   data: Track[];
-  meta: RulePreviewMeta;
+  meta: RuleMatchesMeta;
 }
 
-export interface RulePreviewParams extends Pagination {
+export interface EvaluateRulesParams extends Pagination {
+  /** Omit to evaluate the saved rules; pass a draft to try unsaved edits. */
   rules?: RuleGroup;
 }
 
@@ -598,19 +602,13 @@ export const smartPlaylistsApi = {
 
   remove: (id: number) => api.delete(`api/v1/smart_playlists/${id}`).then(() => undefined),
 
-  preview: (id: number, { rules, ...page }: RulePreviewParams = {}) =>
+  evaluate: (id: number, { rules, ...page }: EvaluateRulesParams = {}) =>
     api
-      .post(`api/v1/smart_playlists/${id}/preview`, {
+      .post(`api/v1/smart_playlists/${id}/evaluate`, {
         searchParams: cleanParams(page),
         json: { smart_playlist: rules ? { rules } : {} },
       })
-      .json<RulePreview>(),
-
-  evaluate: (id: number) =>
-    api
-      .post(`api/v1/smart_playlists/${id}/evaluate`)
-      .json<ApiResource<SmartPlaylistDetail>>()
-      .then((r) => r.data),
+      .json<RuleMatches>(),
 
   schema: () =>
     api

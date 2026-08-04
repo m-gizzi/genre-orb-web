@@ -15,6 +15,7 @@ describe("invalidateLibraryQueries", () => {
       ["playlist"],
       ["smartPlaylists"],
       ["smartPlaylist"],
+      ["ruleMatches"],
       ["tracks"],
       ["track"],
       ["artists"],

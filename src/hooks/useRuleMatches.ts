@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   smartPlaylistsApi,
   type RuleGroup,
-  type RulePreviewMeta,
+  type RuleMatchesMeta,
   type Track,
 } from "@/api/client";
 import { canonicalRules } from "@/lib/ruleTree";
@@ -11,35 +11,35 @@ import { queryKeys } from "@/lib/queryKeys";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const DEBOUNCE_MS = 400;
-export const PREVIEW_PER_PAGE = 25;
+export const MATCHES_PER_PAGE = 25;
 
-export interface RulePreviewOptions {
-  /** Omit to preview the saved rules. */
+export interface RuleMatchesOptions {
   rules?: RuleGroup;
   page?: number;
   perPage?: number;
   enabled?: boolean;
 }
 
-export interface RulePreviewResult {
+export interface RuleMatchesResult {
   tracks: Track[];
-  meta: RulePreviewMeta | undefined;
+  meta: RuleMatchesMeta | undefined;
   isPending: boolean;
   isError: boolean;
   error: unknown;
+  refetch: () => void;
 }
 
-export function useRulePreview(
+export function useRuleMatches(
   id: number,
-  { rules, page = 1, perPage = PREVIEW_PER_PAGE, enabled = true }: RulePreviewOptions = {}
-): RulePreviewResult {
+  { rules, page = 1, perPage = MATCHES_PER_PAGE, enabled = true }: RuleMatchesOptions = {}
+): RuleMatchesResult {
   const canonical = useMemo(() => (rules ? canonicalRules(rules) : ""), [rules]);
   const debounced = useDebouncedValue(canonical, DEBOUNCE_MS);
   const settled = debounced === canonical;
 
   const query = useQuery({
-    queryKey: queryKeys.rulePreview(id, debounced, page),
-    queryFn: () => smartPlaylistsApi.preview(id, { rules, page, per_page: perPage }),
+    queryKey: queryKeys.ruleMatches(id, debounced, page, perPage),
+    queryFn: () => smartPlaylistsApi.evaluate(id, { rules, page, per_page: perPage }),
     enabled: enabled && Number.isFinite(id) && settled,
     placeholderData: keepPreviousData,
   });
@@ -50,5 +50,6 @@ export function useRulePreview(
     isPending: enabled && (!settled || query.isFetching),
     isError: query.isError,
     error: query.error,
+    refetch: () => void query.refetch(),
   };
 }

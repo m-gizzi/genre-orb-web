@@ -17,6 +17,7 @@ function invalidateSmartPlaylists(queryClient: QueryClient, id?: number) {
   queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylists });
   queryClient.invalidateQueries({ queryKey: queryKeys.playlists });
   queryClient.invalidateQueries({ queryKey: queryKeys.playlistDetails });
+  queryClient.invalidateQueries({ queryKey: [queryKeys.ruleMatchesRoot] });
   if (id != null) {
     queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylist(id) });
   }
@@ -57,18 +58,6 @@ export function useUpdateSmartPlaylist(id: number) {
   return useMutation({
     mutationFn: (input: UpdateSmartPlaylistInput) => smartPlaylistsApi.update(id, input),
     onSuccess: () => invalidateSmartPlaylists(queryClient, id),
-  });
-}
-
-export function useEvaluateSmartPlaylist(id: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => smartPlaylistsApi.evaluate(id),
-    onSuccess: (smartPlaylist) => {
-      queryClient.setQueryData(queryKeys.smartPlaylist(id), smartPlaylist);
-      queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylists });
-    },
   });
 }
 
