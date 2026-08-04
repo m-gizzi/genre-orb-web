@@ -7,26 +7,42 @@ import type { SuggestOption } from "@/components/catalog/SuggestCombobox";
 
 const PER_PAGE = 8;
 
+export interface RuleSuggestions {
+  options: SuggestOption[];
+  isLoading: boolean;
+}
+
 export function useRuleSuggestions(
   suggest: RuleFieldSpec["suggest"],
   query: string,
-): SuggestOption[] {
-  const search = useDebouncedValue(query, 250).trim();
-  const params = { search: search || undefined, per_page: PER_PAGE };
-  const ready = search.length > 0;
+): RuleSuggestions {
+  const debounced = useDebouncedValue(query, 250).trim();
+  const params = { search: debounced || undefined, per_page: PER_PAGE };
+  const ready = debounced.length > 0;
 
   const genres = useGenres(params, ready && suggest === "genres");
   const artists = useArtists(params, ready && suggest === "artists");
   const albums = useAlbums(params, ready && suggest === "albums");
 
+  const settling = query.trim() !== debounced;
+
   switch (suggest) {
     case "genres":
-      return (genres.data?.data ?? []).map((g) => ({ id: g.id, label: g.name }));
+      return {
+        options: (genres.data?.data ?? []).map((g) => ({ id: g.id, label: g.name })),
+        isLoading: settling || genres.isFetching,
+      };
     case "artists":
-      return (artists.data?.data ?? []).map((a) => ({ id: a.id, label: a.name }));
+      return {
+        options: (artists.data?.data ?? []).map((a) => ({ id: a.id, label: a.name })),
+        isLoading: settling || artists.isFetching,
+      };
     case "albums":
-      return (albums.data?.data ?? []).map((a) => ({ id: a.id, label: a.title }));
+      return {
+        options: (albums.data?.data ?? []).map((a) => ({ id: a.id, label: a.title })),
+        isLoading: settling || albums.isFetching,
+      };
     default:
-      return [];
+      return { options: [], isLoading: false };
   }
 }

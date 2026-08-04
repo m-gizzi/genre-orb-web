@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   HeartIcon,
@@ -23,8 +23,8 @@ import { HintedSwitch } from "@/components/ui/hinted-switch";
 import { ErrorState } from "@/components/catalog";
 import { DeleteSmartPlaylistDialog } from "@/components/smartPlaylists/DeleteSmartPlaylistDialog";
 import { SourcePlaylistPicker } from "@/components/smartPlaylists/SourcePlaylistPicker";
-import { RuleGroupCard, type RuleTreeHandlers } from "@/components/rules";
-import { countRules } from "@/lib/ruleTree";
+import { RuleGroupCard } from "@/components/rules";
+import { countRules, toDraft } from "@/lib/ruleTree";
 import { formatDate, formatNumber } from "@/lib/format";
 
 const NOT_READY_HINT = "Add at least one rule before turning this on.";
@@ -205,7 +205,7 @@ function SmartPlaylistDetailView({
           )}
         </Card>
 
-        <Card className="gap-3 p-4">
+        <Card className="gap-3 p-4 lg:col-span-2">
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-heading font-medium">Rules</h2>
             <Button
@@ -238,6 +238,7 @@ function SmartPlaylistDetailView({
 
 function RuleSummary({ rules }: { rules: RuleGroup }) {
   const schema = useRuleSchema();
+  const tree = useMemo(() => toDraft(rules), [rules]);
 
   if (rules.rules.length === 0) {
     return (
@@ -250,29 +251,18 @@ function RuleSummary({ rules }: { rules: RuleGroup }) {
   if (!schema.data) {
     return (
       <p className="text-sm text-muted-foreground">
-        {countRules(rules)} rules — open the editor to see them.
+        {countRules(tree)} rules — open the editor to see them.
       </p>
     );
   }
 
   return (
     <RuleGroupCard
-      group={rules}
-      root={rules}
+      group={tree}
+      root={tree}
       schema={schema.data}
       path={[]}
       editable={false}
-      handlers={NO_EDIT}
     />
   );
 }
-
-const NO_EDIT: RuleTreeHandlers = {
-  onChangeNode: () => {},
-  onAddNode: () => {},
-  onRemoveNode: () => {},
-  onMoveNode: () => {},
-  onWrapNode: () => {},
-  onDuplicateNode: () => {},
-  onUnwrapGroup: () => {},
-};

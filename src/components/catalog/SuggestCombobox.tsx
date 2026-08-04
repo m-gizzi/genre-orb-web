@@ -18,6 +18,10 @@ interface SuggestComboboxProps {
   placeholder?: string;
   className?: string;
   prefix?: React.ReactNode;
+  loading?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
+  maxLength?: number;
 }
 
 export function SuggestCombobox({
@@ -31,13 +35,18 @@ export function SuggestCombobox({
   placeholder = "Search…",
   className,
   prefix,
+  loading = false,
+  invalid = false,
+  describedBy,
+  maxLength,
 }: SuggestComboboxProps) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const listboxId = useId();
   const optionId = (index: number) => `${listboxId}-option-${index}`;
-  const isOpen = open && query.length > 0 && options.length > 0;
+  const typing = query.trim().length > 0;
+  const isOpen = open && typing && (options.length > 0 || loading || Boolean(onCommitText));
   const active = isOpen && activeIndex >= 0 ? options[activeIndex] : undefined;
 
   function choose(option: SuggestOption) {
@@ -99,6 +108,9 @@ export function SuggestCombobox({
           "aria-controls": listboxId,
           "aria-autocomplete": "list",
           "aria-activedescendant": active ? optionId(activeIndex) : undefined,
+          "aria-invalid": invalid || undefined,
+          "aria-describedby": describedBy,
+          maxLength,
           onKeyDown: handleKeyDown,
           onBlur: () => setOpen(false),
         }}
@@ -108,6 +120,7 @@ export function SuggestCombobox({
           id={listboxId}
           role="listbox"
           aria-label={ariaLabel}
+          aria-busy={loading || undefined}
           className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10"
         >
           {options.map((option, index) => (
@@ -129,6 +142,15 @@ export function SuggestCombobox({
               {option.label}
             </li>
           ))}
+          {options.length === 0 && (
+            <li role="presentation" className="px-2 py-1 text-muted-foreground">
+              {loading
+                ? "Searching…"
+                : onCommitText
+                  ? `No matches — press Enter to use “${query.trim()}” anyway`
+                  : "No matches"}
+            </li>
+          )}
         </ul>
       )}
     </div>

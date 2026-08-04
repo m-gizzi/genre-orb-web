@@ -3,6 +3,7 @@ import type {
   RelativeValue,
   RuleArity,
   RuleFieldSpec,
+  RuleSchema,
   RuleScalar,
   RuleValue,
 } from "@/api/client";
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { isRelative, isScalar } from "@/lib/ruleTree";
 import { minutesToMs, msToMinutes, toNumber } from "@/lib/parse";
 import { EntityAutocomplete } from "./EntityAutocomplete";
 import { TokenInput } from "./TokenInput";
@@ -30,11 +32,15 @@ const UNIT_LABELS: Record<RelativeUnit, string> = {
   years: "years",
 };
 
+const MS_PER_MINUTE = 60_000;
+
 interface RuleValueInputProps {
   field: RuleFieldSpec;
   arity: RuleArity;
   value: RuleValue;
-  relativeUnits: RelativeUnit[];
+  schema: RuleSchema;
+  invalid: boolean;
+  describedBy?: string;
   onChange: (value: RuleValue) => void;
 }
 
@@ -42,15 +48,22 @@ export function RuleValueInput({
   field,
   arity,
   value,
-  relativeUnits,
+  schema,
+  invalid,
+  describedBy,
   onChange,
 }: RuleValueInputProps) {
+  const flags = { invalid, describedBy };
+
   if (arity === "many") {
     return (
       <TokenInput
         values={asStrings(value)}
         suggest={field.suggest}
         label={field.label}
+        maxValues={schema.max_list_size}
+        maxLength={field.constraints.max_length}
+        {...flags}
         onChange={onChange}
       />
     );
@@ -59,9 +72,10 @@ export function RuleValueInput({
   if (arity === "relative") {
     return (
       <RelativeDateInput
-        value={asRelative(value)}
-        units={relativeUnits}
+        value={isRelative(value) ? value : partialRelative(value)}
+        units={schema.relative_units}
         label={field.label}
+        {...flags}
         onChange={onChange}
       />
     );
@@ -81,6 +95,7 @@ export function RuleValueInput({
           field={field}
           value={pair[0] ?? null}
           bound="lower"
+          {...flags}
           onChange={setBound(0)}
         />
         <span className="text-sm text-muted-foreground">and</span>
@@ -88,24 +103,47 @@ export function RuleValueInput({
           field={field}
           value={pair[1] ?? null}
           bound="upper"
+          {...flags}
           onChange={setBound(1)}
         />
       </div>
     );
   }
 
-  return <ScalarInput field={field} value={asScalar(value)} onChange={onChange} />;
+  return (
+    <ScalarInput
+      field={field}
+      value={isScalar(value) ? value : null}
+      {...flags}
+      onChange={onChange}
+    />
+  );
 }
 
 interface ScalarInputProps {
   field: RuleFieldSpec;
   value: RuleScalar | null;
   bound?: "lower" | "upper";
+  invalid: boolean;
+  describedBy?: string;
   onChange: (value: RuleScalar | null) => void;
 }
 
-function ScalarInput({ field, value, bound, onChange }: ScalarInputProps) {
+function ScalarInput({
+  field,
+  value,
+  bound,
+  invalid,
+  describedBy,
+  onChange,
+}: ScalarInputProps) {
   const label = bound ? `${field.label} ${bound} bound` : `${field.label} value`;
+  const { constraints } = field;
+  const flags = {
+    "aria-label": label,
+    "aria-invalid": invalid || undefined,
+    "aria-describedby": describedBy,
+  };
 
   switch (field.value_type) {
     case "boolean":
@@ -115,7 +153,7 @@ function ScalarInput({ field, value, bound, onChange }: ScalarInputProps) {
           value={value == null ? "" : String(value)}
           onValueChange={(next) => onChange(next === "true")}
         >
-          <SelectTrigger className="w-[9rem]" aria-label={label}>
+          <SelectTrigger className="w-[9rem]" {...flags}>
             <SelectValue placeholder="Choose…" />
           </SelectTrigger>
           <SelectContent>
@@ -133,9 +171,11 @@ function ScalarInput({ field, value, bound, onChange }: ScalarInputProps) {
         <Input
           type="number"
           inputMode="numeric"
-          aria-label={label}
+          min={constraints.min}
+          max={constraints.max}
           className="w-28"
           value={value == null ? "" : String(value)}
+          {...flags}
           onChange={(e) => onChange(toNumber(e.target.value) ?? null)}
         />
       );
@@ -146,10 +186,12 @@ function ScalarInput({ field, value, bound, onChange }: ScalarInputProps) {
           <Input
             type="number"
             inputMode="numeric"
-            min="0"
-            aria-label={`${label} in minutes`}
+            min={toMinutes(constraints.min, Math.ceil)}
+            max={toMinutes(constraints.max, Math.floor)}
             className="w-24"
             value={msToMinutes(typeof value === "number" ? value : undefined)}
+            {...flags}
+            aria-label={`${label} in minutes`}
             onChange={(e) => onChange(minutesToMs(e.target.value) ?? null)}
           />
           <span className="text-sm text-muted-foreground">min</span>
@@ -160,37 +202,52 @@ function ScalarInput({ field, value, bound, onChange }: ScalarInputProps) {
       return (
         <Input
           type="date"
-          aria-label={label}
           className="w-[10.5rem]"
           value={typeof value === "string" ? value : ""}
+          {...flags}
           onChange={(e) => onChange(e.target.value || null)}
         />
       );
 
-    default:
+    case "text":
       return field.suggest ? (
         <EntityAutocomplete
           value={typeof value === "string" ? value : ""}
           suggest={field.suggest}
           label={field.label}
+          maxLength={constraints.max_length}
+          invalid={invalid}
+          describedBy={describedBy}
           onChange={(next) => onChange(next || null)}
         />
       ) : (
         <Input
-          aria-label={label}
           className="w-full max-w-[16rem]"
           placeholder={`${field.label}…`}
+          maxLength={constraints.max_length}
           value={typeof value === "string" ? value : ""}
+          {...flags}
           onChange={(e) => onChange(e.target.value || null)}
         />
       );
+
+    default: {
+      const unhandled: never = field.value_type;
+      return (
+        <span className="self-center text-sm text-destructive">
+          This build can't edit “{String(unhandled)}” values — update the app.
+        </span>
+      );
+    }
   }
 }
 
 interface RelativeDateInputProps {
-  value: RelativeValue | null;
+  value: Partial<RelativeValue> | null;
   units: RelativeUnit[];
   label: string;
+  invalid: boolean;
+  describedBy?: string;
   onChange: (value: RuleValue) => void;
 }
 
@@ -198,10 +255,16 @@ function RelativeDateInput({
   value,
   units,
   label,
+  invalid,
+  describedBy,
   onChange,
 }: RelativeDateInputProps) {
   const unit = value?.unit ?? units[0] ?? "days";
   const items = Object.fromEntries(units.map((u) => [u, UNIT_LABELS[u]]));
+
+  function emit(count: number | undefined, nextUnit: RelativeUnit) {
+    onChange(count == null ? null : { count, unit: nextUnit });
+  }
 
   return (
     <div className="flex items-center gap-1.5">
@@ -210,22 +273,26 @@ function RelativeDateInput({
         inputMode="numeric"
         min="1"
         step="1"
-        aria-label={`${label} count`}
         className="w-20"
         value={value?.count == null ? "" : String(value.count)}
+        aria-label={`${label} count`}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         onChange={(e) => {
           const count = toNumber(e.target.value);
-          onChange(count == null ? null : { count: Math.round(count), unit });
+          emit(count == null ? undefined : Math.round(count), unit);
         }}
       />
       <Select
         items={items}
         value={unit}
-        onValueChange={(next) =>
-          onChange({ count: value?.count ?? 0, unit: next as RelativeUnit })
-        }
+        onValueChange={(next) => emit(value?.count, next as RelativeUnit)}
       >
-        <SelectTrigger className="w-[7.5rem]" aria-label={`${label} unit`}>
+        <SelectTrigger
+          className="w-[7.5rem]"
+          aria-label={`${label} unit`}
+          aria-invalid={invalid || undefined}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -240,16 +307,18 @@ function RelativeDateInput({
   );
 }
 
+function toMinutes(
+  ms: number | undefined,
+  round: (value: number) => number,
+): number | undefined {
+  return ms == null ? undefined : round(ms / MS_PER_MINUTE);
+}
+
 function asStrings(value: RuleValue): string[] {
   return Array.isArray(value) ? value.map(String) : [];
 }
 
-function asScalar(value: RuleValue): RuleScalar | null {
-  if (typeof value === "string" || typeof value === "number") return value;
-  return typeof value === "boolean" ? value : null;
-}
-
-function asRelative(value: RuleValue): RelativeValue | null {
+function partialRelative(value: RuleValue): Partial<RelativeValue> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return null;
   }

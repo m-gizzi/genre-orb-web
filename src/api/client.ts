@@ -3,6 +3,10 @@ import { API_URL, SPOTIFY_CALLBACK_PATH } from "@/lib/config";
 
 export { API_URL };
 
+const ALL_MESSAGES = Symbol.for("genreOrb.apiErrorMessages");
+
+type WithMessages = { [ALL_MESSAGES]?: string[] };
+
 export async function extractApiError(
   error: unknown,
   fallback = "Something went wrong"
@@ -13,8 +17,15 @@ export async function extractApiError(
         errors?: Array<{ message?: string }>;
         error?: string;
       };
-      const message = body?.errors?.[0]?.message ?? body?.error;
-      if (message) return message;
+      const messages = (body?.errors ?? [])
+        .map((entry) => entry?.message)
+        .filter((message): message is string => Boolean(message));
+      if (messages.length === 0 && body?.error) messages.push(body.error);
+
+      if (messages.length > 0) {
+        (error as unknown as WithMessages)[ALL_MESSAGES] = messages;
+        return messages[0]!;
+      }
     } catch {
       // Response body wasn't JSON; fall back below.
     }
@@ -23,11 +34,24 @@ export async function extractApiError(
   if (error instanceof Error && error.message) return error.message;
   return fallback;
 }
+
 export function apiErrorMessage(
   error: unknown,
   fallback = "Something went wrong"
 ): string {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+export function apiErrorMessages(
+  error: unknown,
+  fallback = "Something went wrong"
+): string[] {
+  const stashed =
+    error && typeof error === "object"
+      ? (error as WithMessages)[ALL_MESSAGES]
+      : undefined;
+
+  return stashed?.length ? stashed : [apiErrorMessage(error, fallback)];
 }
 
 export const api = ky.create({
@@ -156,17 +180,28 @@ export interface RuleOperatorSpec {
   label: string;
 }
 
+export interface RuleConstraints {
+  min?: number;
+  max?: number;
+  max_length?: number;
+}
+
 export interface RuleFieldSpec {
   key: string;
   label: string;
   value_type: RuleValueType;
-  suggest: "genres" | "artists" | "albums" | null;
+  suggest: RuleSuggestSource | null;
+  constraints: RuleConstraints;
   operators: RuleOperatorSpec[];
 }
+
+export type RuleSuggestSource = "genres" | "artists" | "albums";
 
 export interface RuleSchema {
   max_depth: number;
   max_nodes: number;
+  max_string_length: number;
+  max_list_size: number;
   match_types: RuleMatch[];
   relative_units: RelativeUnit[];
   operators: Record<string, { arity: RuleArity }>;

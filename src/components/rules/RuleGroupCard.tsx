@@ -1,5 +1,5 @@
 import { PlusIcon, UngroupIcon } from "lucide-react";
-import type { RuleGroup, RuleMatch, RuleSchema } from "@/api/client";
+import type { RuleMatch, RuleSchema } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,7 +16,9 @@ import {
   isRuleGroup,
   newCondition,
   newGroup,
-  type RuleNode,
+  pathLabel,
+  type DraftGroup,
+  type DraftNode,
   type RulePath,
 } from "@/lib/ruleTree";
 import { cn } from "@/lib/utils";
@@ -31,8 +33,8 @@ const NOT_HINT =
   "Inverted — excludes tracks that match this group instead of including them.";
 
 export interface RuleTreeHandlers {
-  onChangeNode: (path: RulePath, node: RuleNode) => void;
-  onAddNode: (path: RulePath, node: RuleNode) => void;
+  onChangeNode: (path: RulePath, node: DraftNode) => void;
+  onAddNode: (path: RulePath, node: DraftNode) => void;
   onRemoveNode: (path: RulePath) => void;
   onMoveNode: (path: RulePath, delta: number) => void;
   onWrapNode: (path: RulePath) => void;
@@ -40,33 +42,35 @@ export interface RuleTreeHandlers {
   onUnwrapGroup: (path: RulePath) => void;
 }
 
-interface RuleGroupCardProps {
-  group: RuleGroup;
-  root: RuleGroup;
+interface GroupShape {
+  group: DraftGroup;
+  root: DraftGroup;
   schema: RuleSchema;
   path: RulePath;
-  editable: boolean;
-  handlers: RuleTreeHandlers;
 }
 
-export function RuleGroupCard({
+export type RuleGroupCardProps = GroupShape &
+  ({ editable: true; handlers: RuleTreeHandlers } | { editable: false });
+
+export function RuleGroupCard(props: RuleGroupCardProps) {
+  if (!props.editable) return <ReadOnlyGroup {...props} />;
+
+  return <EditableGroup {...props} />;
+}
+
+function EditableGroup({
   group,
   root,
   schema,
   path,
-  editable,
   handlers,
-}: RuleGroupCardProps) {
+}: GroupShape & { handlers: RuleTreeHandlers }) {
   const isRoot = path.length === 0;
   const depth = depthOf(path);
   const atMaxDepth = depth >= schema.max_depth;
   const atMaxNodes = countNodes(root) >= schema.max_nodes;
-
-  if (!editable) {
-    return (
-      <ReadOnlyGroup group={group} root={root} schema={schema} path={path} />
-    );
-  }
+  const isEmpty = group.rules.length === 0;
+  const flagEmpty = isEmpty && !isRoot;
 
   const groupActions: RowActions = {
     onMove: (delta) => handlers.onMoveNode(path, delta),
@@ -83,8 +87,9 @@ export function RuleGroupCard({
       className={cn(
         "rounded-xl border p-3",
         isRoot ? "bg-card" : "mt-1 bg-muted/40",
+        flagEmpty && "border-destructive/40 bg-destructive/5",
       )}
-      aria-label={isRoot ? "Rules" : `Nested group at level ${depth}`}
+      aria-label={isRoot ? "Rules" : `Nested group ${pathLabel(path)}`}
     >
       <header className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground">Match</span>
@@ -95,7 +100,11 @@ export function RuleGroupCard({
             handlers.onChangeNode(path, { ...group, match: match as RuleMatch })
           }
         >
-          <SelectTrigger size="sm" className="w-[5.5rem]" aria-label="Match type">
+          <SelectTrigger
+            size="sm"
+            className="w-[5.5rem]"
+            aria-label={isRoot ? "Match type" : `Match type for group ${pathLabel(path)}`}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -114,7 +123,7 @@ export function RuleGroupCard({
               size="sm"
               variant={group.not ? "default" : "outline"}
               aria-pressed={Boolean(group.not)}
-              aria-label="Invert this group"
+              aria-label={`Invert group ${pathLabel(path)}`}
               onClick={() =>
                 handlers.onChangeNode(path, { ...group, not: !group.not })
               }
@@ -128,27 +137,30 @@ export function RuleGroupCard({
             >
               <UngroupIcon /> Ungroup
             </Button>
-            <RowMenu label={`group at level ${depth}`} actions={groupActions} />
+            <RowMenu label={`group ${pathLabel(path)}`} actions={groupActions} />
           </>
         )}
       </header>
 
-      {!isRoot && group.not && (
-        <p className="mt-1.5 text-xs text-muted-foreground">{NOT_HINT}</p>
+      {/* The height is reserved either way, so toggling NOT doesn't shift the
+          rules below it. */}
+      {!isRoot && (
+        <p className="mt-1.5 min-h-4 text-xs text-muted-foreground">
+          {group.not ? NOT_HINT : ""}
+        </p>
       )}
 
-      {group.rules.length === 0 ? (
+      {isEmpty ? (
         <EmptyGroup isRoot={isRoot} />
       ) : (
         <ul className="mt-2 space-y-1">
           {group.rules.map((node, index) => (
             <ChildNode
-              key={index}
+              key={node.uid}
               node={node}
               root={root}
               schema={schema}
               path={[...path, index]}
-              editable
               handlers={handlers}
             />
           ))}
@@ -181,22 +193,14 @@ export function RuleGroupCard({
 }
 
 interface ChildNodeProps {
-  node: RuleNode;
-  root: RuleGroup;
+  node: DraftNode;
+  root: DraftGroup;
   schema: RuleSchema;
   path: RulePath;
-  editable: boolean;
   handlers: RuleTreeHandlers;
 }
 
-function ChildNode({
-  node,
-  root,
-  schema,
-  path,
-  editable,
-  handlers,
-}: ChildNodeProps) {
+function ChildNode({ node, root, schema, path, handlers }: ChildNodeProps) {
   if (isRuleGroup(node)) {
     return (
       <li>
@@ -205,7 +209,7 @@ function ChildNode({
           root={root}
           schema={schema}
           path={path}
-          editable={editable}
+          editable
           handlers={handlers}
         />
       </li>
@@ -216,8 +220,9 @@ function ChildNode({
     <RuleConditionRow
       condition={node}
       schema={schema}
-      editable={editable}
-      onChange={(next) => handlers.onChangeNode(path, next)}
+      path={path}
+      editable
+      onChange={(next) => handlers.onChangeNode(path, { ...next, uid: node.uid })}
       actions={{
         onMove: (delta) => handlers.onMoveNode(path, delta),
         onWrap: () => handlers.onWrapNode(path),
@@ -231,12 +236,7 @@ function ChildNode({
   );
 }
 
-function ReadOnlyGroup({
-  group,
-  root,
-  schema,
-  path,
-}: Omit<RuleGroupCardProps, "editable" | "handlers">) {
+function ReadOnlyGroup({ group, root, schema, path }: GroupShape) {
   const isRoot = path.length === 0;
   const heading = `${group.not ? "Exclude tracks matching" : "Match"} ${group.match.toUpperCase()} of`;
 
@@ -245,29 +245,49 @@ function ReadOnlyGroup({
       className={cn("rounded-xl border p-3", isRoot ? "bg-card" : "mt-1 bg-muted/40")}
     >
       <p className="text-sm font-medium">{heading}</p>
-      <ul className="mt-1.5 space-y-1">
-        {group.rules.map((node, index) => (
-          <ChildNode
-            key={index}
-            node={node}
-            root={root}
-            schema={schema}
-            path={[...path, index]}
-            editable={false}
-            handlers={NO_HANDLERS}
-          />
-        ))}
-      </ul>
+      {group.rules.length === 0 ? (
+        <p className="mt-1.5 text-sm text-muted-foreground">Nothing in this group.</p>
+      ) : (
+        <ul className="mt-1.5 space-y-1">
+          {group.rules.map((node, index) =>
+            isRuleGroup(node) ? (
+              <li key={node.uid}>
+                <RuleGroupCard
+                  group={node}
+                  root={root}
+                  schema={schema}
+                  path={[...path, index]}
+                  editable={false}
+                />
+              </li>
+            ) : (
+              <RuleConditionRow
+                key={node.uid}
+                condition={node}
+                schema={schema}
+                path={[...path, index]}
+                editable={false}
+              />
+            ),
+          )}
+        </ul>
+      )}
     </section>
   );
 }
 
 function EmptyGroup({ isRoot }: { isRoot: boolean }) {
+  if (isRoot) {
+    return (
+      <p className="mt-2 text-sm text-muted-foreground">
+        No rules yet. Add a condition to describe which tracks belong here.
+      </p>
+    );
+  }
+
   return (
-    <p className="mt-2 text-sm text-muted-foreground">
-      {isRoot
-        ? "No rules yet. Add a condition to describe which tracks belong here."
-        : "This group is empty — add a condition or ungroup it."}
+    <p className="mt-2 text-sm text-destructive">
+      This group is empty — add a condition or ungroup it before saving.
     </p>
   );
 }
@@ -295,13 +315,3 @@ function AddButton({ label, disabled, disabledHint, onClick }: AddButtonProps) {
     </Tooltip>
   );
 }
-
-const NO_HANDLERS: RuleTreeHandlers = {
-  onChangeNode: () => {},
-  onAddNode: () => {},
-  onRemoveNode: () => {},
-  onMoveNode: () => {},
-  onWrapNode: () => {},
-  onDuplicateNode: () => {},
-  onUnwrapGroup: () => {},
-};

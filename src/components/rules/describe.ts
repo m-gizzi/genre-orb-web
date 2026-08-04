@@ -1,10 +1,5 @@
-import type {
-  RelativeValue,
-  RuleCondition,
-  RuleSchema,
-  RuleValue,
-} from "@/api/client";
-import { arityOf, fieldSpec } from "@/lib/ruleTree";
+import type { RuleCondition, RuleSchema } from "@/api/client";
+import { arityOf, fieldSpec, isRelative } from "@/lib/ruleTree";
 import { msToMinutes } from "@/lib/parse";
 
 export function describeCondition(
@@ -36,10 +31,6 @@ function describeValue(condition: RuleCondition, schema: RuleSchema): string {
     default:
       return scalar(value, field?.value_type);
   }
-}
-
-function isRelative(value: RuleValue): value is RelativeValue {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function scalar(value: unknown, valueType?: string): string {

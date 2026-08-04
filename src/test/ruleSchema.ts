@@ -1,9 +1,12 @@
 import type { RuleSchema } from "@/api/client";
 
-/** Mirrors Rules::FieldCatalog, so component tests render the real vocabulary. */
+const TEXT = { max_length: 200 };
+
 export const ruleSchema: RuleSchema = {
   max_depth: 5,
   max_nodes: 100,
+  max_string_length: 200,
+  max_list_size: 25,
   match_types: ["all", "any"],
   relative_units: ["days", "weeks", "months", "years"],
   operators: {
@@ -26,6 +29,7 @@ export const ruleSchema: RuleSchema = {
       label: "Genre",
       value_type: "text",
       suggest: "genres",
+      constraints: TEXT,
       operators: [
         { key: "equals", label: "is" },
         { key: "not_equals", label: "is not" },
@@ -39,6 +43,21 @@ export const ruleSchema: RuleSchema = {
       label: "Artist",
       value_type: "text",
       suggest: "artists",
+      constraints: TEXT,
+      operators: [
+        { key: "equals", label: "is" },
+        { key: "not_equals", label: "is not" },
+        { key: "contains", label: "contains" },
+        { key: "in", label: "is any of" },
+        { key: "not_in", label: "is none of" },
+      ],
+    },
+    {
+      key: "album",
+      label: "Album",
+      value_type: "text",
+      suggest: "albums",
+      constraints: TEXT,
       operators: [
         { key: "equals", label: "is" },
         { key: "not_equals", label: "is not" },
@@ -52,10 +71,13 @@ export const ruleSchema: RuleSchema = {
       label: "Title",
       value_type: "text",
       suggest: null,
+      constraints: TEXT,
       operators: [
         { key: "equals", label: "is" },
+        { key: "not_equals", label: "is not" },
         { key: "contains", label: "contains" },
         { key: "starts_with", label: "starts with" },
+        { key: "ends_with", label: "ends with" },
       ],
     },
     {
@@ -63,8 +85,10 @@ export const ruleSchema: RuleSchema = {
       label: "Release year",
       value_type: "number",
       suggest: null,
+      constraints: { min: 1900, max: 2100 },
       operators: [
         { key: "equals", label: "is" },
+        { key: "not_equals", label: "is not" },
         { key: "greater_than", label: "is after" },
         { key: "less_than", label: "is before" },
         { key: "between", label: "is between" },
@@ -75,9 +99,23 @@ export const ruleSchema: RuleSchema = {
       label: "Duration",
       value_type: "duration",
       suggest: null,
+      constraints: { min: 0, max: 86_400_000 },
       operators: [
         { key: "greater_than", label: "is longer than" },
         { key: "less_than", label: "is shorter than" },
+        { key: "between", label: "is between" },
+      ],
+    },
+    {
+      key: "popularity",
+      label: "Popularity",
+      value_type: "number",
+      suggest: null,
+      constraints: { min: 0, max: 100 },
+      operators: [
+        { key: "equals", label: "is" },
+        { key: "greater_than", label: "is above" },
+        { key: "less_than", label: "is below" },
         { key: "between", label: "is between" },
       ],
     },
@@ -86,6 +124,7 @@ export const ruleSchema: RuleSchema = {
       label: "Explicit",
       value_type: "boolean",
       suggest: null,
+      constraints: {},
       operators: [{ key: "equals", label: "is" }],
     },
     {
@@ -93,9 +132,12 @@ export const ruleSchema: RuleSchema = {
       label: "Date added",
       value_type: "date",
       suggest: null,
+      constraints: {},
       operators: [
         { key: "in_the_last", label: "in the last" },
+        { key: "not_in_the_last", label: "not in the last" },
         { key: "greater_than", label: "is after" },
+        { key: "less_than", label: "is before" },
         { key: "between", label: "is between" },
       ],
     },

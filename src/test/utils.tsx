@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import { render, type RenderOptions } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
@@ -23,22 +23,37 @@ interface ProviderOptions extends Omit<RenderOptions, "wrapper"> {
   queryClient?: QueryClient;
   withQuery?: boolean;
   withTheme?: boolean;
+  withDataRouter?: boolean;
+  routePath?: string;
+  extraRoutes?: Array<{ path: string; element: ReactElement }>;
 }
 
 export function renderWithProviders(
   ui: ReactElement,
   {
     route = "/",
+    routePath,
     queryClient,
     withQuery = false,
     withTheme = false,
+    withDataRouter = false,
+    extraRoutes = [],
     ...options
   }: ProviderOptions = {},
 ) {
   const client = queryClient ?? (withQuery ? makeQueryClient() : undefined);
 
   const wrapper = ({ children }: { children: ReactNode }) => {
-    let tree: ReactNode = <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>;
+    let tree: ReactNode = withDataRouter ? (
+      <RouterProvider
+        router={createMemoryRouter(
+          [{ path: routePath ?? route, element: children }, ...extraRoutes],
+          { initialEntries: [route] },
+        )}
+      />
+    ) : (
+      <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+    );
     if (client) {
       tree = <QueryClientProvider client={client}>{tree}</QueryClientProvider>;
     }

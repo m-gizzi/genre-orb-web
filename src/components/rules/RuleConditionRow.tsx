@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { ChevronDownIcon, ChevronUpIcon, CopyIcon, GroupIcon, MoreVerticalIcon, Trash2Icon } from "lucide-react";
 import type { RuleCondition, RuleSchema, RuleValue } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { arityOf, coerceValue, fieldSpec, isConditionComplete, newCondition } from "@/lib/ruleTree";
+import {
+  arityOf,
+  blankCondition,
+  coerceValue,
+  fieldLabels,
+  fieldSpec,
+  isConditionComplete,
+  operatorLabels,
+  pathLabel,
+  type RulePath,
+} from "@/lib/ruleTree";
 import { cn } from "@/lib/utils";
 import { RuleValueInput } from "./RuleValueInput";
 import { describeCondition } from "./describe";
@@ -30,31 +41,48 @@ export interface RowActions {
   canWrap: boolean;
 }
 
-interface RuleConditionRowProps {
+interface ConditionShape {
   condition: RuleCondition;
   schema: RuleSchema;
-  editable: boolean;
-  onChange: (condition: RuleCondition) => void;
-  actions: RowActions;
+  path: RulePath;
 }
 
-export function RuleConditionRow({
-  condition,
-  schema,
-  editable,
-  onChange,
-  actions,
-}: RuleConditionRowProps) {
-  const field = fieldSpec(schema, condition.field);
+export type RuleConditionRowProps = ConditionShape &
+  (
+    | {
+        editable: true;
+        onChange: (condition: RuleCondition) => void;
+        actions: RowActions;
+      }
+    | { editable: false }
+  );
 
-  if (!editable) {
+export function RuleConditionRow(props: RuleConditionRowProps) {
+  if (!props.editable) {
     return (
       <li className="text-sm">
         <span className="text-muted-foreground">•</span>{" "}
-        {describeCondition(condition, schema)}
+        {describeCondition(props.condition, props.schema)}
       </li>
     );
   }
+
+  return <EditableRow {...props} />;
+}
+
+function EditableRow({
+  condition,
+  schema,
+  path,
+  onChange,
+  actions,
+}: ConditionShape & {
+  onChange: (condition: RuleCondition) => void;
+  actions: RowActions;
+}) {
+  const errorId = useId();
+  const position = pathLabel(path);
+  const field = fieldSpec(schema, condition.field);
 
   if (!field) {
     return (
@@ -76,16 +104,10 @@ export function RuleConditionRow({
 
   const complete = isConditionComplete(condition, schema);
   const arity = arityOf(schema, condition.operator);
-  const operatorLabels = Object.fromEntries(
-    field.operators.map((op) => [op.key, op.label]),
-  );
-  const fieldLabels = Object.fromEntries(
-    schema.fields.map((f) => [f.key, f.label]),
-  );
 
   function changeField(key: string | null) {
     const next = key ? fieldSpec(schema, key) : undefined;
-    if (next) onChange(newCondition(next));
+    if (next) onChange(blankCondition(next));
   }
 
   function changeOperator(operator: string | null) {
@@ -109,8 +131,12 @@ export function RuleConditionRow({
         !complete && "bg-destructive/5 ring-1 ring-destructive/30",
       )}
     >
-      <Select items={fieldLabels} value={condition.field} onValueChange={changeField}>
-        <SelectTrigger className="w-[9.5rem]" aria-label="Field">
+      <Select
+        items={fieldLabels(schema)}
+        value={condition.field}
+        onValueChange={changeField}
+      >
+        <SelectTrigger className="w-[10.5rem]" aria-label={`Field for rule ${position}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -123,11 +149,14 @@ export function RuleConditionRow({
       </Select>
 
       <Select
-        items={operatorLabels}
+        items={operatorLabels(field)}
         value={condition.operator}
         onValueChange={changeOperator}
       >
-        <SelectTrigger className="w-[10rem]" aria-label="Operator">
+        <SelectTrigger
+          className="w-[11rem]"
+          aria-label={`Operator for rule ${position}`}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -143,15 +172,19 @@ export function RuleConditionRow({
         field={field}
         arity={arity}
         value={condition.value}
-        relativeUnits={schema.relative_units}
+        schema={schema}
+        invalid={!complete}
+        describedBy={complete ? undefined : errorId}
         onChange={changeValue}
       />
 
       {!complete && (
-        <span className="self-center text-xs text-destructive">Needs a value</span>
+        <span id={errorId} className="self-center text-xs text-destructive">
+          Needs a value
+        </span>
       )}
 
-      <RowMenu label={`${field.label} rule`} actions={actions} />
+      <RowMenu label={`rule ${position}, ${field.label}`} actions={actions} />
     </li>
   );
 }

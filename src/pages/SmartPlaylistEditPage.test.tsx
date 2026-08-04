@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Routes, Route } from "react-router-dom";
 import type { Playlist, RuleGroup, SmartPlaylistDetail } from "@/api/client";
 import { smartPlaylistsApi, genresApi, artistsApi, albumsApi } from "@/api/client";
 import { renderWithProviders } from "@/test/utils";
@@ -42,19 +41,30 @@ function renderEditor(rules: RuleGroup) {
   mockedApi.get.mockResolvedValue(detail(rules));
   mockedApi.schema.mockResolvedValue(ruleSchema);
 
-  return renderWithProviders(
-    <Routes>
-      <Route path="/smart-playlists/:id/edit" element={<SmartPlaylistEditPage />} />
-      <Route path="/smart-playlists/:id" element={<p>Detail page</p>} />
-    </Routes>,
-    { route: "/smart-playlists/7/edit", withQuery: true },
-  );
+  return renderWithProviders(<SmartPlaylistEditPage />, {
+    route: "/smart-playlists/7/edit",
+    routePath: "/smart-playlists/:id/edit",
+    extraRoutes: [
+      { path: "/smart-playlists/:id", element: <p>Detail page</p> },
+      { path: "/tracks", element: <p>Tracks page</p> },
+    ],
+    withDataRouter: true,
+    withQuery: true,
+  });
 }
 
 const complete: RuleGroup = {
   match: "all",
   rules: [{ field: "genre", operator: "equals", value: "metal" }],
 };
+
+async function addGenreRule(value = "metal") {
+  await userEvent.click(await screen.findByRole("button", { name: /Condition/ }));
+  await userEvent.type(
+    screen.getByRole("combobox", { name: "Genre value" }),
+    `${value}{Enter}`,
+  );
+}
 
 beforeEach(() => {
   vi.mocked(genresApi).list.mockResolvedValue(emptyPage);
@@ -69,12 +79,12 @@ afterEach(() => {
 
 describe("SmartPlaylistEditPage", () => {
   it("reports not found for a non-numeric id instead of loading forever", () => {
-    renderWithProviders(
-      <Routes>
-        <Route path="/smart-playlists/:id/edit" element={<SmartPlaylistEditPage />} />
-      </Routes>,
-      { route: "/smart-playlists/nope/edit", withQuery: true },
-    );
+    renderWithProviders(<SmartPlaylistEditPage />, {
+      route: "/smart-playlists/nope/edit",
+      routePath: "/smart-playlists/:id/edit",
+      withDataRouter: true,
+      withQuery: true,
+    });
 
     expect(screen.getByText("Smart playlist not found")).toBeInTheDocument();
     expect(mockedApi.get).not.toHaveBeenCalled();
@@ -86,12 +96,31 @@ describe("SmartPlaylistEditPage", () => {
     expect(await screen.findByRole("button", { name: /Save rules/ })).toBeDisabled();
   });
 
+  it("does not think a saved rule set is dirty just from key ordering", async () => {
+    renderEditor({
+      rules: [{ value: "metal", field: "genre", operator: "equals" }],
+      match: "all",
+    } as RuleGroup);
+
+    await screen.findByRole("button", { name: /Save rules/ });
+    expect(screen.queryByText(/unsaved changes/)).not.toBeInTheDocument();
+  });
+
   it("refuses to save while a rule is missing its value", async () => {
     renderEditor({ match: "all", rules: [] });
 
     await userEvent.click(await screen.findByRole("button", { name: /Condition/ }));
 
-    expect(screen.getByText(/1 rule needs a value/)).toBeInTheDocument();
+    expect(screen.getByText(/1 rule needs finishing/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Save rules/ })).toBeDisabled();
+  });
+
+  it("refuses to save while a nested group is empty", async () => {
+    renderEditor(complete);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Group/ }));
+
+    expect(screen.getByText(/1 rule needs finishing/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Save rules/ })).toBeDisabled();
   });
 
@@ -99,11 +128,7 @@ describe("SmartPlaylistEditPage", () => {
     mockedApi.update.mockResolvedValue(detail(complete));
     renderEditor({ match: "all", rules: [] });
 
-    await userEvent.click(await screen.findByRole("button", { name: /Condition/ }));
-    await userEvent.type(
-      screen.getByRole("combobox", { name: "Genre value" }),
-      "metal{Enter}",
-    );
+    await addGenreRule();
     await userEvent.click(screen.getByRole("button", { name: /Save rules/ }));
 
     await waitFor(() =>
@@ -112,47 +137,90 @@ describe("SmartPlaylistEditPage", () => {
     expect(await screen.findByText("Detail page")).toBeInTheDocument();
   });
 
+  it("sends no client-only identity to the server", async () => {
+    mockedApi.update.mockResolvedValue(detail(complete));
+    renderEditor({ match: "all", rules: [] });
+
+    await addGenreRule();
+    await userEvent.click(screen.getByRole("button", { name: /Save rules/ }));
+
+    await waitFor(() => expect(mockedApi.update).toHaveBeenCalled());
+    expect(JSON.stringify(mockedApi.update.mock.calls[0])).not.toContain("uid");
+  });
+
   it("counts the rules it is about to save", async () => {
     renderEditor(complete);
 
     expect(await screen.findByText(/^1 rule$/)).toBeInTheDocument();
   });
 
-  it("leaves without confirming when nothing has changed", async () => {
-    const confirm = vi.fn(() => true);
-    vi.stubGlobal("confirm", confirm);
+  it("leaves without asking when nothing has changed", async () => {
     renderEditor(complete);
 
     await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
 
-    expect(confirm).not.toHaveBeenCalled();
     expect(await screen.findByText("Detail page")).toBeInTheDocument();
   });
 
-  it("asks before discarding unsaved changes", async () => {
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
-    renderEditor(complete);
+  describe("with unsaved changes", () => {
+    it("blocks leaving and offers to keep editing", async () => {
+      renderEditor(complete);
 
-    await userEvent.click(await screen.findByRole("button", { name: /Condition/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      await addGenreRule("jazz");
+      await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(confirm).toHaveBeenCalled();
-    expect(screen.queryByText("Detail page")).not.toBeInTheDocument();
+      expect(
+        await screen.findByText("Discard your unsaved rule changes?"),
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+
+      expect(screen.queryByText("Detail page")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Save rules/ })).toBeInTheDocument();
+    });
+
+    it("leaves once the changes are explicitly discarded", async () => {
+      renderEditor(complete);
+
+      await addGenreRule("jazz");
+      await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Discard changes" }),
+      );
+
+      expect(await screen.findByText("Detail page")).toBeInTheDocument();
+    });
   });
 
   it("surfaces a rejected save without leaving the editor", async () => {
     mockedApi.update.mockRejectedValue(new Error("Rules are invalid."));
     renderEditor({ match: "all", rules: [] });
 
-    await userEvent.click(await screen.findByRole("button", { name: /Condition/ }));
-    await userEvent.type(
-      screen.getByRole("combobox", { name: "Genre value" }),
-      "metal{Enter}",
-    );
+    await addGenreRule();
     await userEvent.click(screen.getByRole("button", { name: /Save rules/ }));
 
     expect(await screen.findByText("Rules are invalid.")).toBeInTheDocument();
     expect(screen.queryByText("Detail page")).not.toBeInTheDocument();
+  });
+
+  it("shows every rule the server rejected, not just the first", async () => {
+    const error = Object.assign(new Error("Rules must be a whole number at rule 1"), {
+      [Symbol.for("genreOrb.apiErrorMessages")]: [
+        "Rules must be a whole number at rule 1",
+        "Rules must be between 0 and 100 at rule 2",
+      ],
+    });
+    mockedApi.update.mockRejectedValue(error);
+    renderEditor({ match: "all", rules: [] });
+
+    await addGenreRule();
+    await userEvent.click(screen.getByRole("button", { name: /Save rules/ }));
+
+    expect(
+      await screen.findByText("Rules must be a whole number at rule 1"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Rules must be between 0 and 100 at rule 2"),
+    ).toBeInTheDocument();
   });
 });

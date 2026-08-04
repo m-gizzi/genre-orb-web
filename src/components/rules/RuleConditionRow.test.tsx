@@ -40,12 +40,26 @@ function renderRow(initial: RuleCondition, { editable = true } = {}) {
   function Harness() {
     const [condition, setCondition] = useState(initial);
 
+    if (!editable) {
+      return (
+        <ul>
+          <RuleConditionRow
+            condition={condition}
+            schema={ruleSchema}
+            path={[0]}
+            editable={false}
+          />
+        </ul>
+      );
+    }
+
     return (
       <ul>
         <RuleConditionRow
           condition={condition}
           schema={ruleSchema}
-          editable={editable}
+          path={[0]}
+          editable
           onChange={(next) => {
             onChange(next);
             setCondition(next);
@@ -70,7 +84,7 @@ describe("RuleConditionRow", () => {
   it("shows only the operators the field supports", async () => {
     renderRow({ field: "duration", operator: "greater_than", value: 120000 });
 
-    await userEvent.click(screen.getByRole("combobox", { name: "Operator" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "Operator for rule 1" }));
 
     expect(await screen.findByRole("option", { name: "is longer than" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "contains" })).not.toBeInTheDocument();
@@ -83,7 +97,7 @@ describe("RuleConditionRow", () => {
       value: "metal",
     });
 
-    await chooseFrom("Field", "Release year");
+    await chooseFrom("Field for rule 1", "Release year");
 
     expect(onChange).toHaveBeenCalledWith({
       field: "year",
@@ -99,7 +113,7 @@ describe("RuleConditionRow", () => {
       value: "metal",
     });
 
-    await chooseFrom("Operator", "is any of");
+    await chooseFrom("Operator for rule 1", "is any of");
 
     expect(onChange).toHaveBeenCalledWith({
       field: "genre",

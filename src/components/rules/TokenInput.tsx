@@ -9,6 +9,10 @@ interface TokenInputProps {
   values: string[];
   suggest: RuleFieldSpec["suggest"];
   label: string;
+  maxValues: number;
+  maxLength?: number;
+  invalid?: boolean;
+  describedBy?: string;
   onChange: (values: string[]) => void;
 }
 
@@ -16,14 +20,19 @@ export function TokenInput({
   values,
   suggest,
   label,
+  maxValues,
+  maxLength,
+  invalid,
+  describedBy,
   onChange,
 }: TokenInputProps) {
   const [query, setQuery] = useState("");
-  const options = useRuleSuggestions(suggest, query);
+  const suggestions = useRuleSuggestions(suggest, query);
+  const full = values.length >= maxValues;
 
   function add(value: string) {
     const trimmed = value.trim();
-    if (!trimmed || values.includes(trimmed)) return;
+    if (!trimmed || full || values.includes(trimmed)) return;
     onChange([...values, trimmed]);
   }
 
@@ -33,16 +42,28 @@ export function TokenInput({
 
   return (
     <div className="w-full max-w-[22rem] space-y-1.5">
-      <SuggestCombobox
-        query={query}
-        onQueryChange={setQuery}
-        options={options.filter((option) => !values.includes(option.label))}
-        onSelect={(option) => add(option.label)}
-        onCommitText={add}
-        onBackspaceEmpty={() => removeAt(values.length - 1)}
-        ariaLabel={`${label} values`}
-        placeholder={values.length ? "Add another…" : `${label}…`}
-      />
+      {full ? (
+        <p className="text-xs text-muted-foreground">
+          {maxValues} values is the most one rule can match.
+        </p>
+      ) : (
+        <SuggestCombobox
+          query={query}
+          onQueryChange={setQuery}
+          options={suggestions.options.filter(
+            (option) => !values.includes(option.label),
+          )}
+          loading={suggestions.isLoading}
+          onSelect={(option) => add(option.label)}
+          onCommitText={add}
+          onBackspaceEmpty={() => removeAt(values.length - 1)}
+          ariaLabel={`${label} values`}
+          placeholder={values.length ? "Add another…" : `${label}…`}
+          maxLength={maxLength}
+          invalid={invalid}
+          describedBy={describedBy}
+        />
+      )}
       {values.length > 0 && (
         <ul className="flex flex-wrap gap-1">
           {values.map((value, index) => (

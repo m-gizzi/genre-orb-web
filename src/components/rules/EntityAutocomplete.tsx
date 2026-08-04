@@ -9,6 +9,9 @@ interface EntityAutocompleteProps {
   value: string;
   suggest: RuleFieldSpec["suggest"];
   label: string;
+  maxLength?: number;
+  invalid?: boolean;
+  describedBy?: string;
   onChange: (value: string) => void;
 }
 
@@ -16,10 +19,13 @@ export function EntityAutocomplete({
   value,
   suggest,
   label,
+  maxLength,
+  invalid,
+  describedBy,
   onChange,
 }: EntityAutocompleteProps) {
   const [query, setQuery] = useState("");
-  const options = useRuleSuggestions(suggest, query);
+  const suggestions = useRuleSuggestions(suggest, query);
 
   if (value) {
     return (
@@ -41,12 +47,16 @@ export function EntityAutocomplete({
     <SuggestCombobox
       query={query}
       onQueryChange={setQuery}
-      options={options}
+      options={suggestions.options}
+      loading={suggestions.isLoading}
       onSelect={(option) => onChange(option.label)}
       onCommitText={onChange}
       ariaLabel={`${label} value`}
       placeholder={`${label}…`}
       className="w-full max-w-[16rem]"
+      maxLength={maxLength}
+      invalid={invalid}
+      describedBy={describedBy}
     />
   );
 }
