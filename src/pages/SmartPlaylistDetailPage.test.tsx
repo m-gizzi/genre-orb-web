@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Routes, Route } from "react-router-dom";
@@ -6,6 +6,7 @@ import type {
   ApiCollection,
   Playlist,
   RuleGroup,
+  RuleMatches,
   SmartPlaylistDetail,
 } from "@/api/client";
 import { playlistsApi, smartPlaylistsApi } from "@/api/client";
@@ -17,7 +18,13 @@ vi.mock("@/api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/client")>();
   return {
     ...actual,
-    smartPlaylistsApi: { get: vi.fn(), update: vi.fn(), remove: vi.fn(), schema: vi.fn() },
+    smartPlaylistsApi: {
+      get: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      schema: vi.fn(),
+      evaluate: vi.fn(),
+    },
     playlistsApi: { paginated: vi.fn(), liked: vi.fn() },
   };
 });
@@ -28,6 +35,22 @@ const mockedPlaylistsApi = vi.mocked(playlistsApi);
 const withRule: RuleGroup = {
   match: "all",
   rules: [{ field: "genre", operator: "equals", value: "metal" }],
+};
+
+function withMatches(overrides: Partial<RuleMatches["meta"]> = {}): RuleMatches {
+  return { ...noMatches, meta: { ...noMatches.meta, ...overrides } };
+}
+
+const noMatches: RuleMatches = {
+  data: [],
+  meta: {
+    page: 1,
+    per_page: 25,
+    total: 0,
+    total_pages: 0,
+    source_track_count: 0,
+    evaluated_at: null,
+  },
 };
 
 const noPlaylists: ApiCollection<Playlist> = {
@@ -74,6 +97,10 @@ function renderDetail(
     { route, withQuery: true },
   );
 }
+
+beforeEach(() => {
+  mockedSmartApi.evaluate.mockResolvedValue(noMatches);
+});
 
 afterEach(() => vi.clearAllMocks());
 
@@ -199,27 +226,6 @@ describe("SmartPlaylistDetailPage", () => {
     ).toHaveAttribute("href", "/smart-playlists/7/edit");
   });
 
-  it("says nothing about match counts before the first evaluation", async () => {
-    renderDetail(detail({ is_ready: true, rules: withRule, match_count: 0 }));
-
-    expect(await screen.findByText("Never evaluated yet")).toBeInTheDocument();
-  });
-
-  it("reports the match count once evaluated", async () => {
-    renderDetail(
-      detail({
-        is_ready: true,
-        rules: withRule,
-        match_count: 342,
-        last_evaluated_at: "2026-08-01T10:00:00Z",
-      }),
-    );
-
-    expect(
-      await screen.findByText("342 matching tracks at last evaluation"),
-    ).toBeInTheDocument();
-  });
-
   it("opens the delete dialog and states the playlist survives", async () => {
     renderDetail(detail());
 
@@ -229,5 +235,147 @@ describe("SmartPlaylistDetailPage", () => {
     expect(
       within(dialog).getByText(/is kept, both in Genre Orb and on Spotify/),
     ).toBeInTheDocument();
+  });
+
+  describe("evaluating", () => {
+    it("counts a visit as an evaluation, without a second request" , async () => {
+      mockedSmartApi.evaluate.mockResolvedValue(
+        withMatches({ total: 12, source_track_count: 40, evaluated_at: "2026-08-04T10:00:00Z" }),
+      );
+
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+
+      expect(await screen.findByText(/12 matching tracks/, { selector: "p" })).toBeInTheDocument();
+      expect(mockedSmartApi.evaluate).toHaveBeenCalledTimes(1);
+    });
+
+    it("stops the header saying 'never' once the visit has been recorded", async () => {
+      mockedSmartApi.evaluate.mockResolvedValue(
+        withMatches({ total: 12, source_track_count: 40, evaluated_at: "2026-08-04T10:00:00Z" }),
+      );
+
+      renderDetail(detail({ is_ready: true, rules: withRule, last_evaluated_at: null }));
+
+      expect(await screen.findByText(/last evaluated Aug 4, 2026/)).toBeInTheDocument();
+      expect(screen.queryByText(/last evaluated never/)).not.toBeInTheDocument();
+    });
+
+    it("leaves the header alone when the run was not recorded", async () => {
+      mockedSmartApi.evaluate.mockResolvedValue(withMatches({ total: 2, evaluated_at: null }));
+
+      renderDetail(detail({ is_ready: true, rules: withRule, last_evaluated_at: null }));
+
+      expect(await screen.findByText(/last evaluated never/)).toBeInTheDocument();
+    });
+
+    it("re-evaluates by re-running the same request", async () => {
+      mockedSmartApi.evaluate.mockResolvedValue(withMatches({ total: 3 }));
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+      await screen.findByText(/3 matching tracks/, { selector: "p" });
+
+      await userEvent.click(screen.getByRole("button", { name: /Re-evaluate/ }));
+
+      await waitFor(() => expect(mockedSmartApi.evaluate).toHaveBeenCalledTimes(2));
+    });
+
+    it("surfaces an evaluation failure" , async () => {
+      mockedSmartApi.evaluate.mockRejectedValue(
+        new Error("These rules took too long to evaluate."),
+      );
+
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+
+      expect(
+        await screen.findByText("These rules took too long to evaluate."),
+      ).toBeInTheDocument();
+    });
+
+    it("cannot be re-evaluated while it is still a draft", async () => {
+      renderDetail(detail({ is_ready: false }));
+
+      expect(await screen.findByRole("button", { name: /Re-evaluate/ })).toBeDisabled();
+    });
+  });
+
+  describe("the matching tracks card", () => {
+    it("lists what the saved rules currently match", async () => {
+      mockedSmartApi.evaluate.mockResolvedValue({
+        data: [
+          {
+            id: 1,
+            title: "Flying Whales",
+            spotify_id: "t1",
+            duration_ms: 460_000,
+            track_number: 4,
+            explicit: false,
+            popularity: 60,
+            preview_url: null,
+            album: null,
+            artists: [],
+            genres: [],
+          },
+        ],
+        meta: {
+          page: 1,
+          per_page: 25,
+          total: 1,
+          total_pages: 1,
+          source_track_count: 9,
+          evaluated_at: "2026-08-04T10:00:00Z",
+        },
+      });
+
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+
+      expect(await screen.findByText("Flying Whales")).toBeInTheDocument();
+      expect(await screen.findByText(/1 of 9 source tracks/)).toBeInTheDocument();
+    });
+
+    it("is present but empty while the smart playlist is still a draft", async () => {
+      renderDetail(detail({ is_ready: false }));
+
+      expect(await screen.findByText("Matching tracks")).toBeInTheDocument();
+      expect(await screen.findByText(/no rules yet, so there is nothing to match/)).toBeInTheDocument();
+      expect(mockedSmartApi.evaluate).not.toHaveBeenCalled();
+    });
+
+    it("says so when no source playlist has been synced", async () => {
+      mockedSmartApi.evaluate.mockResolvedValue(withMatches({ total: 0, source_track_count: 0 }));
+
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+
+      expect(
+        await screen.findByText(/None of the source playlists have been synced/),
+      ).toBeInTheDocument();
+    });
+
+    it("distinguishes narrow rules from an unsynced pool", async () => {
+      mockedSmartApi.evaluate.mockResolvedValue(withMatches({ total: 0, source_track_count: 40 }));
+
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+
+      expect(
+        await screen.findByText(/No tracks in the source playlists match these rules/),
+      ).toBeInTheDocument();
+    });
+
+    it("offers a page size selector and re-evaluates at the new size", async () => {
+      mockedSmartApi.evaluate.mockResolvedValue(
+        withMatches({ total: 60, total_pages: 3, source_track_count: 100 }),
+      );
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+      await screen.findByText(/60 of 100 source tracks/);
+
+      await userEvent.click(screen.getByRole("combobox"));
+      await userEvent.click(await screen.findByRole("option", { name: "50" }));
+
+      await waitFor(() =>
+        expect(mockedSmartApi.evaluate).toHaveBeenCalledWith(7, {
+          rules: undefined,
+          page: 1,
+          per_page: 50,
+        }),
+      );
+    });
   });
 });

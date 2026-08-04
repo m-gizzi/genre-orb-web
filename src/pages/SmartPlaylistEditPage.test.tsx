@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Playlist, RuleGroup, SmartPlaylistDetail } from "@/api/client";
+import type {
+  Playlist,
+  RuleMatches,
+  RuleGroup,
+  SmartPlaylistDetail,
+} from "@/api/client";
 import {
   smartPlaylistsApi,
   genresApi,
@@ -17,7 +22,7 @@ vi.mock("@/api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/client")>();
   return {
     ...actual,
-    smartPlaylistsApi: { get: vi.fn(), update: vi.fn(), schema: vi.fn() },
+    smartPlaylistsApi: { get: vi.fn(), update: vi.fn(), schema: vi.fn(), evaluate: vi.fn() },
     genresApi: { list: vi.fn() },
     artistsApi: { list: vi.fn() },
     albumsApi: { list: vi.fn() },
@@ -41,6 +46,21 @@ function detail(rules: RuleGroup): SmartPlaylistDetail {
     target_playlist: { id: 3, name: "Metal Mix" } as Playlist,
     source_playlists: [],
   } as SmartPlaylistDetail;
+}
+
+function matches(overrides: Partial<RuleMatches["meta"]> = {}): RuleMatches {
+  return {
+    data: [],
+    meta: {
+      page: 1,
+      per_page: 25,
+      total: 0,
+      total_pages: 0,
+      source_track_count: 0,
+      evaluated_at: null,
+      ...overrides,
+    },
+  };
 }
 
 function renderEditor(rules: RuleGroup) {
@@ -73,6 +93,7 @@ async function addGenreRule(value = "metal") {
 }
 
 beforeEach(() => {
+  mockedApi.evaluate.mockResolvedValue(matches());
   vi.mocked(genresApi).list.mockResolvedValue(emptyPage);
   vi.mocked(artistsApi).list.mockResolvedValue(emptyPage);
   vi.mocked(albumsApi).list.mockResolvedValue(emptyPage);
@@ -259,5 +280,70 @@ describe("SmartPlaylistEditPage", () => {
     expect(
       screen.getByText("Rules must be between 0 and 100 at rule 2"),
     ).toBeInTheDocument();
+  });
+
+  describe("the live match count", () => {
+    it("previews the saved rules on load", async () => {
+      mockedApi.evaluate.mockResolvedValue(matches({ total: 42, source_track_count: 500 }));
+
+      renderEditor(complete);
+
+      expect(await screen.findByText("42 matching")).toBeInTheDocument();
+      expect(await screen.findByText(/42 of 500 source tracks/)).toBeInTheDocument();
+      await waitFor(() =>
+        expect(mockedApi.evaluate).toHaveBeenCalledWith(7, {
+          rules: complete,
+          page: 1,
+          per_page: 25,
+        }),
+      );
+    });
+
+    it("keeps the panel present with an explanation instead of hiding it", async () => {
+      renderEditor({ match: "all", rules: [] });
+
+      expect(await screen.findByText("Matching tracks")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Matching tracks/ })).not.toBeInTheDocument();
+    });
+
+    it("does not ask while a rule is unfinished", async () => {
+      renderEditor({ match: "all", rules: [] });
+
+      await userEvent.click(await screen.findByRole("button", { name: /Condition/ }));
+
+      expect(
+        await screen.findByText(/Finish every rule to see what they match/),
+      ).toBeInTheDocument();
+      expect(mockedApi.evaluate).not.toHaveBeenCalled();
+    });
+
+    it("says nothing is filterable when no source has been synced", async () => {
+      mockedApi.evaluate.mockResolvedValue(matches({ total: 0, source_track_count: 0 }));
+
+      renderEditor(complete);
+
+      expect(
+        await screen.findByText(/None of the source playlists have been synced/),
+      ).toBeInTheDocument();
+    });
+
+    it("distinguishes narrow rules from an unsynced pool" , async () => {
+      mockedApi.evaluate.mockResolvedValue(matches({ total: 0, source_track_count: 500 }));
+
+      renderEditor(complete);
+
+      expect(
+        await screen.findByText(/No tracks in the source playlists match these rules/),
+      ).toBeInTheDocument();
+    });
+
+    it("prompts for a rule before there is anything to match", async () => {
+      renderEditor({ match: "all", rules: [] });
+
+      expect(
+        await screen.findByText(/Add a rule to see what it matches/),
+      ).toBeInTheDocument();
+      expect(mockedApi.evaluate).not.toHaveBeenCalled();
+    });
   });
 });

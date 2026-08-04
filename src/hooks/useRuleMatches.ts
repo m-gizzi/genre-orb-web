@@ -1,9 +1,10 @@
-import { useMemo } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   smartPlaylistsApi,
   type RuleGroup,
   type RuleMatchesMeta,
+  type SmartPlaylistDetail,
   type Track,
 } from "@/api/client";
 import { canonicalRules } from "@/lib/ruleTree";
@@ -44,6 +45,8 @@ export function useRuleMatches(
     placeholderData: keepPreviousData,
   });
 
+  useRecordedEvaluation(id, query.data?.meta);
+
   return {
     tracks: query.data?.data ?? [],
     meta: query.data?.meta,
@@ -52,4 +55,22 @@ export function useRuleMatches(
     error: query.error,
     refetch: () => void query.refetch(),
   };
+}
+
+function useRecordedEvaluation(id: number, meta: RuleMatchesMeta | undefined) {
+  const queryClient = useQueryClient();
+  const evaluatedAt = meta?.evaluated_at;
+  const matchCount = meta?.total;
+
+  useEffect(() => {
+    if (!evaluatedAt || matchCount === undefined) return;
+
+    queryClient.setQueryData<SmartPlaylistDetail>(queryKeys.smartPlaylist(id), (current) => {
+      if (!current) return current;
+      if (current.last_evaluated_at === evaluatedAt && current.match_count === matchCount) {
+        return current;
+      }
+      return { ...current, last_evaluated_at: evaluatedAt, match_count: matchCount };
+    });
+  }, [queryClient, id, evaluatedAt, matchCount]);
 }

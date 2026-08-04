@@ -8,6 +8,8 @@ import {
 } from "@/api/client";
 import { useSmartPlaylist, useUpdateSmartPlaylist } from "@/hooks/useSmartPlaylists";
 import { useRuleSchema } from "@/hooks/useRuleSchema";
+import { useRuleMatches } from "@/hooks/useRuleMatches";
+import { usePagination } from "@/hooks/usePagination";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +22,11 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/catalog";
-import { RuleGroupCard, type RuleTreeHandlers } from "@/components/rules";
+import {
+  RuleGroupCard,
+  RuleMatchesPanel,
+  type RuleTreeHandlers,
+} from "@/components/rules";
 import {
   addNode,
   canonicalRules,
@@ -37,6 +43,20 @@ import {
   wrapInGroup,
   type DraftGroup,
 } from "@/lib/ruleTree";
+import { formatNumber } from "@/lib/format";
+import { MATCHES_PER_PAGE } from "@/hooks/useRuleMatches";
+
+function matchesUnavailable(
+  ruleCount: number,
+  unfinished: number,
+  structural: number,
+): string | undefined {
+  if (unfinished > 0 || structural > 0) {
+    return "Finish every rule to see what they match.";
+  }
+  if (ruleCount === 0) return "Add a rule to see what it matches.";
+  return undefined;
+}
 
 export function SmartPlaylistEditPage() {
   const { id } = useParams();
@@ -87,6 +107,15 @@ function RuleEditor({
   const ruleCount = countRules(draft);
   const detailPath = `/smart-playlists/${smartPlaylist.id}`;
   const blocked = unfinished > 0 || structural.length > 0;
+
+  const { page, perPage, setPage, setPerPage } = usePagination(MATCHES_PER_PAGE);
+  const askable = !blocked && ruleCount > 0;
+  const matches = useRuleMatches(smartPlaylist.id, {
+    rules: payload,
+    page,
+    perPage,
+    enabled: askable,
+  });
 
   // Covers closing the tab; useBlocker below covers navigating within the app.
   useEffect(() => {
@@ -167,6 +196,13 @@ function RuleEditor({
         handlers={handlers}
       />
 
+      <RuleMatchesPanel
+        matches={matches}
+        onPageChange={setPage}
+        onPerPageChange={setPerPage}
+        unavailable={matchesUnavailable(ruleCount, unfinished, structural.length)}
+      />
+
       <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-6 py-3">
           <p className="text-sm text-muted-foreground">
@@ -174,6 +210,14 @@ function RuleEditor({
             {isDirty && " · unsaved changes"}
             {unfinished > 0 &&
               ` · ${unfinished} ${unfinished === 1 ? "rule needs" : "rules need"} finishing`}
+            {askable && matches.meta !== undefined && (
+              <>
+                {" · "}
+                <span className={matches.isPending ? "opacity-60" : undefined}>
+                  {formatNumber(matches.meta.total)} matching
+                </span>
+              </>
+            )}
           </p>
           <div className="ml-auto flex gap-2">
             <Button

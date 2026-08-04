@@ -4,6 +4,7 @@ import {
   HeartIcon,
   ListMusicIcon,
   PencilIcon,
+  RefreshCwIcon,
   Trash2Icon,
   WandSparklesIcon,
 } from "lucide-react";
@@ -14,6 +15,12 @@ import {
 } from "@/api/client";
 import { useSmartPlaylist, useUpdateSmartPlaylist } from "@/hooks/useSmartPlaylists";
 import { useRuleSchema } from "@/hooks/useRuleSchema";
+import {
+  MATCHES_PER_PAGE,
+  useRuleMatches,
+  type RuleMatchesResult,
+} from "@/hooks/useRuleMatches";
+import { usePagination } from "@/hooks/usePagination";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +30,7 @@ import { HintedSwitch } from "@/components/ui/hinted-switch";
 import { ErrorState } from "@/components/catalog";
 import { DeleteSmartPlaylistDialog } from "@/components/smartPlaylists/DeleteSmartPlaylistDialog";
 import { SourcePlaylistPicker } from "@/components/smartPlaylists/SourcePlaylistPicker";
-import { RuleGroupCard } from "@/components/rules";
+import { RuleGroupCard, RuleMatchesPanel } from "@/components/rules";
 import { countRules, toDraft } from "@/lib/ruleTree";
 import { formatDate, formatNumber } from "@/lib/format";
 
@@ -61,6 +68,12 @@ function SmartPlaylistDetailView({
   const [editingSources, setEditingSources] = useState(false);
   const [sourceIds, setSourceIds] = useState<number[]>([]);
   const update = useUpdateSmartPlaylist(smartPlaylist.id);
+  const { page, perPage, setPage, setPerPage } = usePagination(MATCHES_PER_PAGE);
+  const matches = useRuleMatches(smartPlaylist.id, {
+    page,
+    perPage,
+    enabled: smartPlaylist.is_ready,
+  });
 
   const target = smartPlaylist.target_playlist;
 
@@ -219,13 +232,20 @@ function SmartPlaylistDetailView({
 
           <RuleSummary rules={smartPlaylist.rules} />
 
-          <p className="text-sm text-muted-foreground">
-            {smartPlaylist.last_evaluated_at
-              ? `${formatNumber(smartPlaylist.match_count)} matching tracks at last evaluation`
-              : "Never evaluated yet"}
-          </p>
+          <EvaluationRow smartPlaylist={smartPlaylist} matches={matches} />
         </Card>
       </div>
+
+      <RuleMatchesPanel
+        matches={matches}
+        onPageChange={setPage}
+        onPerPageChange={setPerPage}
+        unavailable={
+          smartPlaylist.is_ready
+            ? undefined
+            : "This smart playlist has no rules yet, so there is nothing to match."
+        }
+      />
 
       <DeleteSmartPlaylistDialog
         smartPlaylist={smartPlaylist}
@@ -264,5 +284,50 @@ function RuleSummary({ rules }: { rules: RuleGroup }) {
       path={[]}
       editable={false}
     />
+  );
+}
+
+function EvaluationRow({
+  smartPlaylist,
+  matches,
+}: {
+  smartPlaylist: SmartPlaylistDetail;
+  matches: RuleMatchesResult;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <p className="text-sm text-muted-foreground">
+        <EvaluationSummary smartPlaylist={smartPlaylist} matches={matches} />
+      </p>
+
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={matches.refetch}
+        disabled={!smartPlaylist.is_ready || matches.isPending}
+        title={smartPlaylist.is_ready ? undefined : NOT_READY_HINT}
+      >
+        <RefreshCwIcon /> {matches.isPending ? "Evaluating…" : "Re-evaluate"}
+      </Button>
+    </div>
+  );
+}
+
+function EvaluationSummary({
+  smartPlaylist,
+  matches,
+}: {
+  smartPlaylist: SmartPlaylistDetail;
+  matches: RuleMatchesResult;
+}) {
+  if (!smartPlaylist.is_ready) return <>Not evaluated — no rules yet</>;
+  if (matches.isError) return <>Couldn't evaluate these rules</>;
+  if (matches.meta === undefined) return <>Evaluating…</>;
+
+  const { total } = matches.meta;
+  return (
+    <>
+      {formatNumber(total)} matching {total === 1 ? "track" : "tracks"}
+    </>
   );
 }

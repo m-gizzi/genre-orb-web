@@ -71,4 +71,27 @@ describe("TrackTable", () => {
     );
     expect(screen.getByRole("cell", { name: "1" })).toBeInTheDocument();
   });
+
+  it("continues numbering across pages rather than restarting at 1", () => {
+    renderWithProviders(
+      <TrackTable
+        numbering="index"
+        startIndex={50}
+        tracks={[makeTrack({ id: 1, title: "One" }), makeTrack({ id: 2, title: "Two" })]}
+      />
+    );
+    expect(screen.getByRole("cell", { name: "51" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "52" })).toBeInTheDocument();
+  });
+
+  it("offsets the track_number fallback too", () => {
+    renderWithProviders(
+      <TrackTable
+        numbering="track"
+        startIndex={10}
+        tracks={[makeTrack({ id: 1, track_number: null })]}
+      />
+    );
+    expect(screen.getByRole("cell", { name: "11" })).toBeInTheDocument();
+  });
 });

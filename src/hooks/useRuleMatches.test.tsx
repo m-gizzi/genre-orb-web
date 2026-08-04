@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
-import type { RuleGroup, RuleMatches } from "@/api/client";
+import type { RuleGroup, RuleMatches, SmartPlaylistDetail } from "@/api/client";
 import { smartPlaylistsApi } from "@/api/client";
 import { makeQueryWrapper } from "@/test/utils";
 import { useRuleMatches } from "./useRuleMatches";
@@ -110,5 +110,43 @@ describe("useRuleMatches", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.tracks).toEqual([]);
+  });
+
+  describe("reconciling the recorded evaluation", () => {
+    function cached(queryClient: ReturnType<typeof makeQueryWrapper>["queryClient"]) {
+      queryClient.setQueryData(["smartPlaylist", 7], {
+        id: 7,
+        match_count: 0,
+        last_evaluated_at: null,
+      } as SmartPlaylistDetail);
+      return () => queryClient.getQueryData<SmartPlaylistDetail>(["smartPlaylist", 7]);
+    }
+
+    it("patches the cached record when the server recorded the run", async () => {
+      mockedApi.evaluate.mockResolvedValue({
+        ...response(9),
+        meta: { ...response(9).meta, total: 9, evaluated_at: "2026-08-04T10:00:00Z" },
+      });
+      const { wrapper, queryClient } = makeQueryWrapper();
+      const read = cached(queryClient);
+
+      const { result } = renderHook(() => useRuleMatches(7), { wrapper });
+      await waitFor(() => expect(result.current.meta?.total).toBe(9));
+
+      await waitFor(() => expect(read()?.last_evaluated_at).toBe("2026-08-04T10:00:00Z"));
+      expect(read()?.match_count).toBe(9);
+    });
+
+    it("leaves the cached record alone when the run was not recorded", async () => {
+      mockedApi.evaluate.mockResolvedValue(response(9));
+      const { wrapper, queryClient } = makeQueryWrapper();
+      const read = cached(queryClient);
+
+      const { result } = renderHook(() => useRuleMatches(7, { rules: metal }), { wrapper });
+      await waitFor(() => expect(result.current.meta?.total).toBe(9));
+
+      expect(read()?.last_evaluated_at).toBeNull();
+      expect(read()?.match_count).toBe(0);
+    });
   });
 });

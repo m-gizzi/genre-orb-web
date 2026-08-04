@@ -37,10 +37,16 @@ function AlbumThumb({ url, alt }: { url: string | null; alt: string }) {
 interface TrackTableProps {
   tracks: Track[];
   numbering?: "index" | "track";
+  startIndex?: number;
   className?: string;
 }
 
-export function TrackTable({ tracks, numbering, className }: TrackTableProps) {
+export function TrackTable({
+  tracks,
+  numbering,
+  startIndex = 0,
+  className,
+}: TrackTableProps) {
   return (
     <Table className={className}>
       <TableHeader>
@@ -60,8 +66,8 @@ export function TrackTable({ tracks, numbering, className }: TrackTableProps) {
             {numbering && (
               <TableCell className="text-right text-muted-foreground tabular-nums">
                 {numbering === "track"
-                  ? (track.track_number ?? index + 1)
-                  : index + 1}
+                  ? (track.track_number ?? startIndex + index + 1)
+                  : startIndex + index + 1}
               </TableCell>
             )}
             <TableCell className="max-w-xs">
