@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, type RouteObject } from "react-router-dom";
 import { SPOTIFY_CALLBACK_PATH } from "@/lib/config";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -11,6 +11,7 @@ import { PlaylistsPage } from "@/pages/PlaylistsPage";
 import { PlaylistDetailPage } from "@/pages/PlaylistDetailPage";
 import { SmartPlaylistsPage } from "@/pages/SmartPlaylistsPage";
 import { SmartPlaylistDetailPage } from "@/pages/SmartPlaylistDetailPage";
+import { SmartPlaylistEditPage } from "@/pages/SmartPlaylistEditPage";
 import { TracksPage } from "@/pages/TracksPage";
 import { TrackDetailPage } from "@/pages/TrackDetailPage";
 import { ArtistsPage } from "@/pages/ArtistsPage";
@@ -20,36 +21,39 @@ import { AlbumDetailPage } from "@/pages/AlbumDetailPage";
 import { GenresPage } from "@/pages/GenresPage";
 import { GenreDetailPage } from "@/pages/GenreDetailPage";
 
-export function Router() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path={SPOTIFY_CALLBACK_PATH} element={<SpotifyCallbackPage />} />
+const routes: RouteObject[] = [
+  { path: "/login", element: <LoginPage /> },
+  { path: "/signup", element: <SignupPage /> },
+  { path: SPOTIFY_CALLBACK_PATH, element: <SpotifyCallbackPage /> },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        element: <AppLayout />,
+        children: [
+          { path: "/", element: <DashboardPage /> },
+          { path: "/library", element: <LibraryPage /> },
+          { path: "/playlists", element: <PlaylistsPage /> },
+          { path: "/playlists/:id", element: <PlaylistDetailPage /> },
+          { path: "/smart-playlists", element: <SmartPlaylistsPage /> },
+          { path: "/smart-playlists/:id", element: <SmartPlaylistDetailPage /> },
+          { path: "/smart-playlists/:id/edit", element: <SmartPlaylistEditPage /> },
+          { path: "/tracks", element: <TracksPage /> },
+          { path: "/tracks/:id", element: <TrackDetailPage /> },
+          { path: "/artists", element: <ArtistsPage /> },
+          { path: "/artists/:id", element: <ArtistDetailPage /> },
+          { path: "/albums", element: <AlbumsPage /> },
+          { path: "/albums/:id", element: <AlbumDetailPage /> },
+          { path: "/genres", element: <GenresPage /> },
+          { path: "/genres/:id", element: <GenreDetailPage /> },
+        ],
+      },
+    ],
+  },
+];
 
-        <Route element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/library" element={<LibraryPage />} />
-            <Route path="/playlists" element={<PlaylistsPage />} />
-            <Route path="/playlists/:id" element={<PlaylistDetailPage />} />
-            <Route path="/smart-playlists" element={<SmartPlaylistsPage />} />
-            <Route
-              path="/smart-playlists/:id"
-              element={<SmartPlaylistDetailPage />}
-            />
-            <Route path="/tracks" element={<TracksPage />} />
-            <Route path="/tracks/:id" element={<TrackDetailPage />} />
-            <Route path="/artists" element={<ArtistsPage />} />
-            <Route path="/artists/:id" element={<ArtistDetailPage />} />
-            <Route path="/albums" element={<AlbumsPage />} />
-            <Route path="/albums/:id" element={<AlbumDetailPage />} />
-            <Route path="/genres" element={<GenresPage />} />
-            <Route path="/genres/:id" element={<GenreDetailPage />} />
-          </Route>
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
+const router = createBrowserRouter(routes);
+
+export function Router() {
+  return <RouterProvider router={router} />;
 }

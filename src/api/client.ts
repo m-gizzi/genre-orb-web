@@ -3,6 +3,17 @@ import { API_URL, SPOTIFY_CALLBACK_PATH } from "@/lib/config";
 
 export { API_URL };
 
+const ALL_MESSAGES = Symbol("apiErrorMessages");
+
+type WithMessages = { [ALL_MESSAGES]?: string[] };
+
+export function withApiErrorMessages<E>(error: E, messages: string[]): E {
+  if (error && typeof error === "object") {
+    (error as WithMessages)[ALL_MESSAGES] = messages;
+  }
+  return error;
+}
+
 export async function extractApiError(
   error: unknown,
   fallback = "Something went wrong"
@@ -13,8 +24,15 @@ export async function extractApiError(
         errors?: Array<{ message?: string }>;
         error?: string;
       };
-      const message = body?.errors?.[0]?.message ?? body?.error;
-      if (message) return message;
+      const messages = (body?.errors ?? [])
+        .map((entry) => entry?.message)
+        .filter((message): message is string => Boolean(message));
+      if (messages.length === 0 && body?.error) messages.push(body.error);
+
+      if (messages.length > 0) {
+        withApiErrorMessages(error, messages);
+        return messages[0]!;
+      }
     } catch {
       // Response body wasn't JSON; fall back below.
     }
@@ -23,11 +41,24 @@ export async function extractApiError(
   if (error instanceof Error && error.message) return error.message;
   return fallback;
 }
+
 export function apiErrorMessage(
   error: unknown,
   fallback = "Something went wrong"
 ): string {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+export function apiErrorMessages(
+  error: unknown,
+  fallback = "Something went wrong"
+): string[] {
+  const stashed =
+    error && typeof error === "object"
+      ? (error as WithMessages)[ALL_MESSAGES]
+      : undefined;
+
+  return stashed?.length ? stashed : [apiErrorMessage(error, fallback)];
 }
 
 export const api = ky.create({
@@ -125,16 +156,63 @@ export interface PlaylistSummary {
   is_liked_songs: boolean;
 }
 
+export type RuleMatch = "all" | "any";
+export type RelativeUnit = "days" | "weeks" | "months" | "years";
+export type RuleScalar = string | number | boolean;
+
+export interface RelativeValue {
+  count: number;
+  unit: RelativeUnit;
+}
+
+export type RuleValue = RuleScalar | RuleScalar[] | RelativeValue | null;
+
 export interface RuleCondition {
   field: string;
   operator: string;
-  value: unknown;
+  value: RuleValue;
 }
 
 export interface RuleGroup {
-  match: "all" | "any";
+  match: RuleMatch;
   rules: Array<RuleCondition | RuleGroup>;
   not?: boolean;
+}
+
+export type RuleArity = "one" | "two" | "many" | "relative";
+export type RuleValueType = "text" | "number" | "duration" | "boolean" | "date";
+
+export interface RuleOperatorSpec {
+  key: string;
+  label: string;
+}
+
+export interface RuleConstraints {
+  min?: number;
+  max?: number;
+  max_length?: number;
+}
+
+export interface RuleFieldSpec {
+  key: string;
+  label: string;
+  value_type: RuleValueType;
+  suggest: RuleSuggestSource | null;
+  constraints: RuleConstraints;
+  operators: RuleOperatorSpec[];
+}
+
+export type RuleSuggestSource = "genres" | "artists" | "albums";
+
+export interface RuleSchema {
+  max_depth: number;
+  max_nodes: number;
+  max_string_length: number;
+  max_list_size: number;
+  match_types: RuleMatch[];
+  relative_units: RelativeUnit[];
+  operators: Record<string, { arity: RuleArity }>;
+  fields: RuleFieldSpec[];
 }
 
 export interface SmartPlaylist {
@@ -506,6 +584,12 @@ export const smartPlaylistsApi = {
       .then((r) => r.data),
 
   remove: (id: number) => api.delete(`api/v1/smart_playlists/${id}`).then(() => undefined),
+
+  schema: () =>
+    api
+      .get("api/v1/smart_playlists/schema")
+      .json<ApiResource<RuleSchema>>()
+      .then((r) => r.data),
 };
 
 export const artistsApi = {

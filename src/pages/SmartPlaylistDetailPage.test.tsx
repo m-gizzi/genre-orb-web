@@ -10,13 +10,14 @@ import type {
 } from "@/api/client";
 import { playlistsApi, smartPlaylistsApi } from "@/api/client";
 import { renderWithProviders } from "@/test/utils";
+import { ruleSchema } from "@/test/ruleSchema";
 import { SmartPlaylistDetailPage } from "./SmartPlaylistDetailPage";
 
 vi.mock("@/api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/client")>();
   return {
     ...actual,
-    smartPlaylistsApi: { get: vi.fn(), update: vi.fn(), remove: vi.fn() },
+    smartPlaylistsApi: { get: vi.fn(), update: vi.fn(), remove: vi.fn(), schema: vi.fn() },
     playlistsApi: { paginated: vi.fn(), liked: vi.fn() },
   };
 });
@@ -58,6 +59,7 @@ function renderDetail(
   { route = "/smart-playlists/7", options = [] as Playlist[] } = {},
 ) {
   mockedSmartApi.get.mockResolvedValue(smartPlaylist);
+  mockedSmartApi.schema.mockResolvedValue(ruleSchema);
   mockedPlaylistsApi.paginated.mockResolvedValue({
     ...noPlaylists,
     data: options,
@@ -170,6 +172,52 @@ describe("SmartPlaylistDetailPage", () => {
     );
 
     expect(await screen.findByText("Spotify is unavailable.")).toBeInTheDocument();
+  });
+
+  it("renders the saved rules in plain language rather than JSON", async () => {
+    renderDetail(detail({ is_ready: true, rules: withRule }));
+
+    expect(await screen.findByText("Match ALL of")).toBeInTheDocument();
+    expect(screen.getByText("Genre is “metal”")).toBeInTheDocument();
+    expect(document.querySelector("pre")).toBeNull();
+  });
+
+  it("links to the rule editor", async () => {
+    renderDetail(detail({ is_ready: true, rules: withRule }));
+
+    expect(await screen.findByRole("link", { name: /Edit rules/ })).toHaveAttribute(
+      "href",
+      "/smart-playlists/7/edit",
+    );
+  });
+
+  it("sends a draft straight to the builder", async () => {
+    renderDetail(detail());
+
+    expect(
+      await screen.findByRole("link", { name: /Build the rules/ }),
+    ).toHaveAttribute("href", "/smart-playlists/7/edit");
+  });
+
+  it("says nothing about match counts before the first evaluation", async () => {
+    renderDetail(detail({ is_ready: true, rules: withRule, match_count: 0 }));
+
+    expect(await screen.findByText("Never evaluated yet")).toBeInTheDocument();
+  });
+
+  it("reports the match count once evaluated", async () => {
+    renderDetail(
+      detail({
+        is_ready: true,
+        rules: withRule,
+        match_count: 342,
+        last_evaluated_at: "2026-08-01T10:00:00Z",
+      }),
+    );
+
+    expect(
+      await screen.findByText("342 matching tracks at last evaluation"),
+    ).toBeInTheDocument();
   });
 
   it("opens the delete dialog and states the playlist survives", async () => {

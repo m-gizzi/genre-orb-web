@@ -14,6 +14,7 @@ const roots = {
   playlist: "playlist",
   smartPlaylists: "smartPlaylists",
   smartPlaylist: "smartPlaylist",
+  ruleSchema: "ruleSchema",
   tracks: "tracks",
   track: "track",
   artists: "artists",
@@ -54,6 +55,7 @@ export const queryKeys = {
   smartPlaylistsPaged: (params: SearchListParams = {}) =>
     [roots.smartPlaylists, "paged", params] as const,
   smartPlaylist: (id: number) => [roots.smartPlaylist, id] as const,
+  ruleSchema: [roots.ruleSchema] as const,
 
   playlist: (id: number) => [roots.playlist, id] as const,
   playlistTracks: (id: number, params: Pagination = {}) =>

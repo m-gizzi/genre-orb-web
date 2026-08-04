@@ -1,8 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { HeartIcon, ListMusicIcon, Trash2Icon, WandSparklesIcon } from "lucide-react";
-import { apiErrorMessage, type SmartPlaylistDetail } from "@/api/client";
+import {
+  HeartIcon,
+  ListMusicIcon,
+  PencilIcon,
+  Trash2Icon,
+  WandSparklesIcon,
+} from "lucide-react";
+import {
+  apiErrorMessage,
+  type RuleGroup,
+  type SmartPlaylistDetail,
+} from "@/api/client";
 import { useSmartPlaylist, useUpdateSmartPlaylist } from "@/hooks/useSmartPlaylists";
+import { useRuleSchema } from "@/hooks/useRuleSchema";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +23,8 @@ import { HintedSwitch } from "@/components/ui/hinted-switch";
 import { ErrorState } from "@/components/catalog";
 import { DeleteSmartPlaylistDialog } from "@/components/smartPlaylists/DeleteSmartPlaylistDialog";
 import { SourcePlaylistPicker } from "@/components/smartPlaylists/SourcePlaylistPicker";
+import { RuleGroupCard } from "@/components/rules";
+import { countRules, toDraft } from "@/lib/ruleTree";
 import { formatDate, formatNumber } from "@/lib/format";
 
 const NOT_READY_HINT = "Add at least one rule before turning this on.";
@@ -122,8 +135,16 @@ function SmartPlaylistDetailView({
           </div>
           <p className="text-sm text-muted-foreground">
             An empty rule set has nothing to evaluate, so this smart playlist can't be
-            turned on yet. The visual rule builder is coming next.
+            turned on yet.
           </p>
+          <div>
+            <Button
+              size="sm"
+              render={<Link to={`/smart-playlists/${smartPlaylist.id}/edit`} />}
+            >
+              <WandSparklesIcon /> Build the rules
+            </Button>
+          </div>
         </Card>
       )}
 
@@ -184,20 +205,24 @@ function SmartPlaylistDetailView({
           )}
         </Card>
 
-        <Card className="gap-3 p-4">
-          <h2 className="font-heading font-medium">Rules</h2>
-          {smartPlaylist.rules.rules.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No rules yet. Until the visual builder ships, this smart playlist stays a
-              draft.
-            </p>
-          ) : (
-            <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
-              {JSON.stringify(smartPlaylist.rules, null, 2)}
-            </pre>
-          )}
+        <Card className="gap-3 p-4 lg:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-heading font-medium">Rules</h2>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link to={`/smart-playlists/${smartPlaylist.id}/edit`} />}
+            >
+              <PencilIcon /> Edit rules
+            </Button>
+          </div>
+
+          <RuleSummary rules={smartPlaylist.rules} />
+
           <p className="text-sm text-muted-foreground">
-            {formatNumber(smartPlaylist.match_count)} matching tracks at last evaluation
+            {smartPlaylist.last_evaluated_at
+              ? `${formatNumber(smartPlaylist.match_count)} matching tracks at last evaluation`
+              : "Never evaluated yet"}
           </p>
         </Card>
       </div>
@@ -208,5 +233,36 @@ function SmartPlaylistDetailView({
         onOpenChange={setDeleting}
       />
     </div>
+  );
+}
+
+function RuleSummary({ rules }: { rules: RuleGroup }) {
+  const schema = useRuleSchema();
+  const tree = useMemo(() => toDraft(rules), [rules]);
+
+  if (rules.rules.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No rules yet — this smart playlist stays a draft until you add one.
+      </p>
+    );
+  }
+  if (schema.isLoading) return <Skeleton className="h-20 w-full" />;
+  if (!schema.data) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {countRules(tree)} rules — open the editor to see them.
+      </p>
+    );
+  }
+
+  return (
+    <RuleGroupCard
+      group={tree}
+      root={tree}
+      schema={schema.data}
+      path={[]}
+      editable={false}
+    />
   );
 }
