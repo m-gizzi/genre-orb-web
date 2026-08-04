@@ -60,6 +60,18 @@ export function useUpdateSmartPlaylist(id: number) {
   });
 }
 
+export function useEvaluateSmartPlaylist(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => smartPlaylistsApi.evaluate(id),
+    onSuccess: (smartPlaylist) => {
+      queryClient.setQueryData(queryKeys.smartPlaylist(id), smartPlaylist);
+      queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylists });
+    },
+  });
+}
+
 export function useDeleteSmartPlaylist() {
   const queryClient = useQueryClient();
 

@@ -15,6 +15,7 @@ const roots = {
   smartPlaylists: "smartPlaylists",
   smartPlaylist: "smartPlaylist",
   ruleSchema: "ruleSchema",
+  rulePreview: "rulePreview",
   tracks: "tracks",
   track: "track",
   artists: "artists",
@@ -30,6 +31,7 @@ export const CATALOG_QUERY_ROOTS: readonly string[] = [
   roots.playlist,
   roots.smartPlaylists,
   roots.smartPlaylist,
+  roots.rulePreview,
   roots.tracks,
   roots.track,
   roots.artists,
@@ -56,6 +58,8 @@ export const queryKeys = {
     [roots.smartPlaylists, "paged", params] as const,
   smartPlaylist: (id: number) => [roots.smartPlaylist, id] as const,
   ruleSchema: [roots.ruleSchema] as const,
+  rulePreview: (id: number, rules: string, page: number) =>
+    [roots.rulePreview, id, rules, page] as const,
 
   playlist: (id: number) => [roots.playlist, id] as const,
   playlistTracks: (id: number, params: Pagination = {}) =>

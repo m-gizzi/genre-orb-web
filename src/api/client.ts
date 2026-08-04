@@ -255,6 +255,19 @@ export interface UpdateSmartPlaylistInput {
   source_playlist_ids?: number[];
 }
 
+export interface RulePreviewMeta extends PaginationMeta {
+  source_track_count: number;
+}
+
+export interface RulePreview {
+  data: Track[];
+  meta: RulePreviewMeta;
+}
+
+export interface RulePreviewParams extends Pagination {
+  rules?: RuleGroup;
+}
+
 export interface ArtistSummary {
   id: number;
   name: string;
@@ -584,6 +597,20 @@ export const smartPlaylistsApi = {
       .then((r) => r.data),
 
   remove: (id: number) => api.delete(`api/v1/smart_playlists/${id}`).then(() => undefined),
+
+  preview: (id: number, { rules, ...page }: RulePreviewParams = {}) =>
+    api
+      .post(`api/v1/smart_playlists/${id}/preview`, {
+        searchParams: cleanParams(page),
+        json: { smart_playlist: rules ? { rules } : {} },
+      })
+      .json<RulePreview>(),
+
+  evaluate: (id: number) =>
+    api
+      .post(`api/v1/smart_playlists/${id}/evaluate`)
+      .json<ApiResource<SmartPlaylistDetail>>()
+      .then((r) => r.data),
 
   schema: () =>
     api
