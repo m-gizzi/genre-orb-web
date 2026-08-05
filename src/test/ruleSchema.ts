@@ -6,7 +6,7 @@ export const ruleSchema: RuleSchema = {
   max_depth: 5,
   max_nodes: 100,
   max_string_length: 200,
-  max_list_size: 25,
+  max_list_size: 30,
   match_types: ["all", "any"],
   relative_units: ["days", "weeks", "months", "years"],
   operators: {
