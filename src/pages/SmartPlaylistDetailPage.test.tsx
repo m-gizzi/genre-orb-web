@@ -10,9 +10,13 @@ import type {
   SmartPlaylistDetail,
 } from "@/api/client";
 import { playlistsApi, smartPlaylistsApi } from "@/api/client";
+import { useSyncStatus } from "@/contexts/SyncStatusContext";
 import { renderWithProviders } from "@/test/utils";
 import { ruleSchema } from "@/test/ruleSchema";
+import { syncStatusValue } from "@/test/syncStatus";
 import { SmartPlaylistDetailPage } from "./SmartPlaylistDetailPage";
+
+vi.mock("@/contexts/SyncStatusContext", () => ({ useSyncStatus: vi.fn() }));
 
 vi.mock("@/api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/client")>();
@@ -24,6 +28,8 @@ vi.mock("@/api/client", async (importOriginal) => {
       remove: vi.fn(),
       schema: vi.fn(),
       evaluate: vi.fn(),
+      push: vi.fn(),
+      pushStatus: vi.fn(),
     },
     playlistsApi: { paginated: vi.fn(), liked: vi.fn() },
   };
@@ -31,6 +37,7 @@ vi.mock("@/api/client", async (importOriginal) => {
 
 const mockedSmartApi = vi.mocked(smartPlaylistsApi);
 const mockedPlaylistsApi = vi.mocked(playlistsApi);
+const mockedUseSyncStatus = vi.mocked(useSyncStatus);
 
 const withRule: RuleGroup = {
   match: "all",
@@ -100,6 +107,7 @@ function renderDetail(
 
 beforeEach(() => {
   mockedSmartApi.evaluate.mockResolvedValue(noMatches);
+  mockedUseSyncStatus.mockReturnValue(syncStatusValue());
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -376,6 +384,43 @@ describe("SmartPlaylistDetailPage", () => {
           per_page: 50,
         }),
       );
+    });
+  });
+
+  describe("pushing to Spotify", () => {
+    it("starts a push for this smart playlist", async () => {
+      const start = vi.fn();
+      mockedUseSyncStatus.mockReturnValue(syncStatusValue({ push: { start } }));
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: /Push to Spotify/ }),
+      );
+
+      expect(start).toHaveBeenCalledWith(7);
+    });
+
+    it("cannot push a draft with no rules", async () => {
+      renderDetail(detail({ is_ready: false }));
+
+      expect(
+        await screen.findByRole("button", { name: /Push to Spotify/ }),
+      ).toBeDisabled();
+    });
+
+    it("shows progress and blocks a second push while one is in flight", async () => {
+      mockedUseSyncStatus.mockReturnValue(
+        syncStatusValue({ push: { isPushing: vi.fn(() => true) } }),
+      );
+      renderDetail(detail({ is_ready: true, rules: withRule }));
+
+      expect(await screen.findByRole("button", { name: /Pushing/ })).toBeDisabled();
+    });
+
+    it("shows when the smart playlist was last pushed", async () => {
+      renderDetail(detail({ last_pushed_at: "2026-08-01T12:00:00Z" }));
+
+      expect(await screen.findByText(/last pushed/)).toBeInTheDocument();
     });
   });
 });

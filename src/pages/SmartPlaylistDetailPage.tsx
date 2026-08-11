@@ -6,6 +6,7 @@ import {
   PencilIcon,
   RefreshCwIcon,
   Trash2Icon,
+  UploadIcon,
   WandSparklesIcon,
 } from "lucide-react";
 import {
@@ -21,6 +22,7 @@ import {
   type RuleMatchesResult,
 } from "@/hooks/useRuleMatches";
 import { usePagination } from "@/hooks/usePagination";
+import { useSyncStatus } from "@/contexts/SyncStatusContext";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +37,7 @@ import { countRules, toDraft } from "@/lib/ruleTree";
 import { formatDate, formatNumber } from "@/lib/format";
 
 const NOT_READY_HINT = "Add at least one rule before turning this on.";
+const PUSH_NOT_READY_HINT = "Add at least one rule before pushing.";
 
 export function SmartPlaylistDetailPage() {
   const { id } = useParams();
@@ -114,7 +117,8 @@ function SmartPlaylistDetailView({
             <Link to={`/playlists/${target.id}`} className="underline hover:text-primary">
               {target.name}
             </Link>{" "}
-            · last evaluated {formatDate(smartPlaylist.last_evaluated_at, "never")}
+            · last evaluated {formatDate(smartPlaylist.last_evaluated_at, "never")}{" "}
+            · last pushed {formatDate(smartPlaylist.last_pushed_at, "never")}
           </>
         }
         actions={
@@ -300,16 +304,36 @@ function EvaluationRow({
         <EvaluationSummary smartPlaylist={smartPlaylist} matches={matches} />
       </p>
 
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={matches.refetch}
-        disabled={!smartPlaylist.is_ready || matches.isPending}
-        title={smartPlaylist.is_ready ? undefined : NOT_READY_HINT}
-      >
-        <RefreshCwIcon /> {matches.isPending ? "Evaluating…" : "Re-evaluate"}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={matches.refetch}
+          disabled={!smartPlaylist.is_ready || matches.isPending}
+          title={smartPlaylist.is_ready ? undefined : NOT_READY_HINT}
+        >
+          <RefreshCwIcon /> {matches.isPending ? "Evaluating…" : "Re-evaluate"}
+        </Button>
+
+        <PushButton smartPlaylist={smartPlaylist} />
+      </div>
     </div>
+  );
+}
+
+function PushButton({ smartPlaylist }: { smartPlaylist: SmartPlaylistDetail }) {
+  const { push } = useSyncStatus();
+  const pushing = push.isPushing(smartPlaylist.id);
+
+  return (
+    <Button
+      size="sm"
+      onClick={() => push.start(smartPlaylist.id)}
+      disabled={!smartPlaylist.is_ready || pushing}
+      title={smartPlaylist.is_ready ? undefined : PUSH_NOT_READY_HINT}
+    >
+      <UploadIcon /> {pushing ? "Pushing…" : "Push to Spotify"}
+    </Button>
   );
 }
 

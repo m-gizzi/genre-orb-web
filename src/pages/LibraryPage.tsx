@@ -14,7 +14,7 @@ import { EmptyState } from "@/components/catalog";
 export function LibraryPage() {
   const { user, refreshUser } = useAuth();
   const queryClient = useQueryClient();
-  const { message, show, library, artist } = useSyncStatus();
+  const { message, show, library, artist, push } = useSyncStatus();
 
   useOwnsSyncDisplay();
 
@@ -52,8 +52,11 @@ export function LibraryPage() {
             variant="inline"
             librarySession={library.visibleSession}
             artistSession={artist.visibleSession}
+            activePushes={push.activePushes}
+            finishedPush={push.visibleFinished}
             onDismissLibrary={library.dismissSession}
             onDismissArtist={artist.dismissSession}
+            onDismissPush={push.dismissFinished}
           />
         </div>
       ) : (

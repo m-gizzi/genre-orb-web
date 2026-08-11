@@ -30,6 +30,7 @@ const SORT_LABELS: Record<SmartPlaylistSort, string> = {
   name: "Name",
   created_at: "Created",
   last_evaluated_at: "Last evaluated",
+  last_pushed_at: "Last pushed",
 };
 
 function ruleSummary(rules: RuleGroup) {

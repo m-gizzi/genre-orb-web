@@ -1,8 +1,13 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import type { ArtistMetadataSession, SyncSession } from "@/api/client";
+import type {
+  ArtistMetadataSession,
+  PushSession,
+  SyncSession,
+} from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLibrarySync } from "@/hooks/useLibrarySync";
 import { useArtistSync } from "@/hooks/useArtistSync";
+import { usePushStatus } from "@/hooks/usePushStatus";
 import { useAutoDismissSession } from "@/hooks/useAutoDismissSession";
 import {
   useTransientMessage,
@@ -36,9 +41,21 @@ interface ArtistSyncState {
   dismissSession: () => void;
 }
 
+interface PushState {
+  activePushes: PushSession[];
+  visibleFinished: PushSession | null;
+  hasActivePush: boolean;
+  isError: boolean;
+  activePushFor: (id: number) => PushSession | undefined;
+  isPushing: (id: number) => boolean;
+  start: (id: number) => void;
+  dismissFinished: () => void;
+}
+
 interface SyncStatusContextType {
   library: LibrarySyncState;
   artist: ArtistSyncState;
+  push: PushState;
   message: TransientMessage | null;
   show: (message: TransientMessage) => void;
 }
@@ -53,6 +70,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
 
   const librarySync = useLibrarySync({ enabled, onMessage: show });
   const artistSync = useArtistSync({ enabled, onMessage: show });
+  const pushStatus = usePushStatus({ enabled, onMessage: show });
 
   const [visibleLibrarySession, dismissLibrarySession] = useAutoDismissSession(
     librarySync.currentSession,
@@ -60,6 +78,10 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
   );
   const [visibleArtistSession, dismissArtistSession] = useAutoDismissSession(
     artistSync.currentSession,
+    SYNC_NOTICE_TIMEOUT_MS
+  );
+  const [visibleFinishedPush, dismissFinishedPush] = useAutoDismissSession(
+    pushStatus.recentPushes[0] ?? null,
     SYNC_NOTICE_TIMEOUT_MS
   );
 
@@ -117,9 +139,32 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
     ]
   );
 
+  const push = useMemo<PushState>(
+    () => ({
+      activePushes: pushStatus.activePushes,
+      visibleFinished: visibleFinishedPush,
+      hasActivePush: pushStatus.hasActivePush,
+      isError: pushStatus.isError,
+      activePushFor: pushStatus.activePushFor,
+      isPushing: pushStatus.isPushing,
+      start: pushStatus.push,
+      dismissFinished: dismissFinishedPush,
+    }),
+    [
+      pushStatus.activePushes,
+      visibleFinishedPush,
+      pushStatus.hasActivePush,
+      pushStatus.isError,
+      pushStatus.activePushFor,
+      pushStatus.isPushing,
+      pushStatus.push,
+      dismissFinishedPush,
+    ]
+  );
+
   const value = useMemo<SyncStatusContextType>(
-    () => ({ library, artist, message, show }),
-    [library, artist, message, show]
+    () => ({ library, artist, push, message, show }),
+    [library, artist, push, message, show]
   );
 
   return (
