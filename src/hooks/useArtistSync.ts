@@ -1,16 +1,13 @@
-import { useEffect, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   artistsApi,
   apiErrorMessage,
-  TERMINAL_SYNC_STATUSES,
   type ArtistMetadataSession,
   type ArtistSyncStatus,
 } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
 import { invalidateLibraryQueries } from "@/lib/invalidate";
-import { POLL_INTERVAL_MS, SYNC_START_TIMEOUT_MS } from "@/lib/config";
-import { useTemporaryFlag } from "@/hooks/useTemporaryFlag";
+import { usePolledSession } from "@/hooks/usePolledSession";
 import type { TransientMessage } from "@/hooks/useTransientMessage";
 
 interface UseArtistSyncOptions {
@@ -28,40 +25,18 @@ const EMPTY_STATUS: ArtistSyncStatus = {
 };
 
 export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
-  const queryClient = useQueryClient();
-
-  const [awaitingStart, startAwaiting, stopAwaiting] =
-    useTemporaryFlag(SYNC_START_TIMEOUT_MS);
-
-  const statusQuery = useQuery({
+  const {
+    query: statusQuery,
+    active: hasActiveSync,
+    startAwaiting,
+    queryClient,
+  } = usePolledSession({
     queryKey: queryKeys.artistSyncStatus,
     queryFn: artistsApi.getSyncStatus,
     enabled,
-    refetchInterval: (query) => {
-      if (query.state.data?.has_active_sync) return POLL_INTERVAL_MS;
-      if (awaitingStart) return POLL_INTERVAL_MS;
-      return false;
-    },
+    isActive: (status) => status.has_active_sync,
+    onFinished: invalidateLibraryQueries,
   });
-
-  const hasActiveSync = statusQuery.data?.has_active_sync ?? false;
-  const sessionStatus = statusQuery.data?.current_session?.status ?? null;
-
-  useEffect(() => {
-    if (awaitingStart && hasActiveSync) stopAwaiting();
-  }, [awaitingStart, hasActiveSync, stopAwaiting]);
-
-  const wasActiveRef = useRef(false);
-  useEffect(() => {
-    const finished =
-      wasActiveRef.current &&
-      !hasActiveSync &&
-      (sessionStatus === null || TERMINAL_SYNC_STATUSES.includes(sessionStatus));
-    if (finished) {
-      invalidateLibraryQueries(queryClient);
-    }
-    wasActiveRef.current = hasActiveSync;
-  }, [hasActiveSync, sessionStatus, queryClient]);
 
   const applyStartedSession = async (session: ArtistMetadataSession) => {
     await queryClient.cancelQueries({ queryKey: queryKeys.artistSyncStatus });

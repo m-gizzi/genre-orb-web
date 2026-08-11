@@ -418,12 +418,6 @@ export type SyncSessionStatus =
   | "completed_with_errors"
   | "failed";
 
-export const TERMINAL_SYNC_STATUSES: readonly SyncSessionStatus[] = [
-  "completed",
-  "completed_with_errors",
-  "failed",
-];
-
 export type SyncPlaylistStatus =
   | "pending"
   | "fetching_pages"
@@ -487,6 +481,33 @@ export interface ArtistSyncStatus {
   artists_synced: number;
 }
 
+export type PushSessionStatus = "pending" | "running" | "completed" | "failed";
+
+export type PushStrategy = "diff" | "replace";
+
+export interface PushSession {
+  id: number;
+  status: PushSessionStatus;
+  progress: SyncProgress;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  smart_playlist_id: number;
+  smart_playlist_name: string;
+  strategy: PushStrategy;
+  tracks_added: number;
+  tracks_removed: number;
+  match_count: number;
+  sampled: boolean;
+}
+
+export interface PushStatus {
+  active_pushes: PushSession[];
+  recent_pushes: PushSession[];
+  rate_limited: boolean;
+  rate_limit_resume_at: string | null;
+}
+
 export const authApi = {
   login: (credentials: LoginCredentials) =>
     api.post("auth/login", { json: { user: credentials } }).json<AuthResponse>(),
@@ -536,7 +557,7 @@ export const libraryApi = {
   sync: () =>
     api
       .post("api/v1/library/sync")
-      .json<ApiResource<{ status: string; session: SyncSession }>>()
+      .json<ApiResource<{ session: SyncSession }>>()
       .then((r) => r.data),
 };
 
@@ -615,6 +636,18 @@ export const smartPlaylistsApi = {
       .get("api/v1/smart_playlists/schema")
       .json<ApiResource<RuleSchema>>()
       .then((r) => r.data),
+
+  push: (id: number) =>
+    api
+      .post(`api/v1/smart_playlists/${id}/push`)
+      .json<ApiResource<{ session: PushSession }>>()
+      .then((r) => r.data),
+
+  pushStatus: () =>
+    api
+      .get("api/v1/smart_playlists/push_status")
+      .json<ApiResource<PushStatus>>()
+      .then((r) => r.data),
 };
 
 export const artistsApi = {
@@ -640,7 +673,7 @@ export const artistsApi = {
       .post("api/v1/artists/sync", {
         json: options?.syncAll ? { sync_all: true } : undefined,
       })
-      .json<ApiResource<{ status: string; session: ArtistMetadataSession }>>()
+      .json<ApiResource<{ session: ArtistMetadataSession }>>()
       .then((r) => r.data),
 };
 

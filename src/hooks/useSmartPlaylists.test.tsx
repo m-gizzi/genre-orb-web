@@ -25,6 +25,8 @@ vi.mock("@/api/client", async (importOriginal) => {
       create: vi.fn(),
       update: vi.fn(),
       remove: vi.fn(),
+      push: vi.fn(),
+      pushStatus: vi.fn(),
     },
   };
 });

@@ -10,6 +10,7 @@ import type {
 const roots = {
   libraryStatus: "libraryStatus",
   artistSyncStatus: "artistSyncStatus",
+  pushStatus: "pushStatus",
   playlists: "playlists",
   playlist: "playlist",
   smartPlaylists: "smartPlaylists",
@@ -52,6 +53,7 @@ export const queryKeys = {
   likedPlaylist: [roots.playlists, "liked"] as const,
   playlistDetails: [roots.playlist] as const,
   artistSyncStatus: [roots.artistSyncStatus] as const,
+  pushStatus: [roots.pushStatus] as const,
 
   smartPlaylists: [roots.smartPlaylists] as const,
   smartPlaylistsPaged: (params: SearchListParams = {}) =>

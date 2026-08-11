@@ -1,19 +1,11 @@
 import { useEffect, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  apiErrorMessage,
-  libraryApi,
-  TERMINAL_SYNC_STATUSES,
-  type LibraryStatus,
-} from "@/api/client";
+import { useMutation, type QueryClient } from "@tanstack/react-query";
+import { apiErrorMessage, libraryApi, type LibraryStatus } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
 import { invalidateLibraryQueries } from "@/lib/invalidate";
-import {
-  METADATA_FETCH_TIMEOUT_MS,
-  POLL_INTERVAL_MS,
-  SYNC_START_TIMEOUT_MS,
-} from "@/lib/config";
+import { METADATA_FETCH_TIMEOUT_MS } from "@/lib/config";
 import { useTemporaryFlag } from "@/hooks/useTemporaryFlag";
+import { usePolledSession } from "@/hooks/usePolledSession";
 import type { TransientMessage } from "@/hooks/useTransientMessage";
 
 interface UseLibrarySyncOptions {
@@ -30,48 +22,33 @@ const EMPTY_STATUS: LibraryStatus = {
   playlists_metadata_error: null,
 };
 
-export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
-  const queryClient = useQueryClient();
+function onSyncFinished(queryClient: QueryClient) {
+  invalidateLibraryQueries(queryClient);
+  queryClient.invalidateQueries({ queryKey: queryKeys.artistSyncStatus });
+}
 
-  const [awaitingStart, startAwaiting, stopAwaiting] =
-    useTemporaryFlag(SYNC_START_TIMEOUT_MS);
+export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
   const [fetchingMetadata, startFetchingMetadata, stopFetchingMetadata] =
     useTemporaryFlag(METADATA_FETCH_TIMEOUT_MS);
   const metadataBaselineRef = useRef<string | null>(null);
   const metadataErrorBaselineRef = useRef<string | null>(null);
 
-  const statusQuery = useQuery({
+  const {
+    query: statusQuery,
+    active: hasActiveSync,
+    startAwaiting,
+    queryClient,
+  } = usePolledSession({
     queryKey: queryKeys.libraryStatus,
     queryFn: libraryApi.getStatus,
     enabled,
-    refetchInterval: (query) => {
-      if (query.state.data?.has_active_sync) return POLL_INTERVAL_MS;
-      if (awaitingStart || fetchingMetadata) return POLL_INTERVAL_MS;
-      return false;
-    },
+    isActive: (status) => status.has_active_sync,
+    onFinished: onSyncFinished,
+    alsoPollWhile: fetchingMetadata,
   });
 
-  const hasActiveSync = statusQuery.data?.has_active_sync ?? false;
-  const sessionStatus = statusQuery.data?.current_session?.status ?? null;
   const metadataFetchedAt = statusQuery.data?.playlists_metadata_fetched_at ?? null;
   const metadataError = statusQuery.data?.playlists_metadata_error ?? null;
-
-  useEffect(() => {
-    if (awaitingStart && hasActiveSync) stopAwaiting();
-  }, [awaitingStart, hasActiveSync, stopAwaiting]);
-
-  const wasActiveRef = useRef(false);
-  useEffect(() => {
-    const finished =
-      wasActiveRef.current &&
-      !hasActiveSync &&
-      (sessionStatus === null || TERMINAL_SYNC_STATUSES.includes(sessionStatus));
-    if (finished) {
-      invalidateLibraryQueries(queryClient);
-      queryClient.invalidateQueries({ queryKey: queryKeys.artistSyncStatus });
-    }
-    wasActiveRef.current = hasActiveSync;
-  }, [hasActiveSync, sessionStatus, queryClient]);
 
   useEffect(() => {
     if (!fetchingMetadata) return;
