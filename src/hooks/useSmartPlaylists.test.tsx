@@ -115,7 +115,7 @@ describe("useCreateSmartPlaylist", () => {
 });
 
 describe("useUpdateSmartPlaylist", () => {
-  it("updates and invalidates the single smart playlist", async () => {
+  it("updates and invalidates smart playlist detail pages", async () => {
     mockedApi.update.mockResolvedValue({ id: 7 } as SmartPlaylistDetail);
     const { wrapper, queryClient } = makeQueryWrapper();
     const spy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
@@ -127,13 +127,12 @@ describe("useUpdateSmartPlaylist", () => {
     expect(mockedApi.update).toHaveBeenCalledWith(7, { is_enabled: true });
     expect(spy.mock.calls.map(([arg]) => arg?.queryKey)).toContainEqual([
       "smartPlaylist",
-      7,
     ]);
   });
 });
 
 describe("useDeleteSmartPlaylist", () => {
-  it("deletes and invalidates by the mutated id", async () => {
+  it("deletes and invalidates the affected roots", async () => {
     mockedApi.remove.mockResolvedValue(undefined);
     const { wrapper, queryClient } = makeQueryWrapper();
     const spy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
@@ -144,7 +143,7 @@ describe("useDeleteSmartPlaylist", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockedApi.remove).toHaveBeenCalledWith(7);
     const keys = spy.mock.calls.map(([arg]) => arg?.queryKey);
-    expect(keys).toContainEqual(["smartPlaylist", 7]);
+    expect(keys).toContainEqual(["smartPlaylist"]);
     expect(keys).toContainEqual(["playlist"]);
   });
 });

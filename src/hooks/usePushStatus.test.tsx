@@ -143,6 +143,10 @@ describe("usePushStatus", () => {
         queryKey: queryKeys.smartPlaylists,
       })
     );
+
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.smartPlaylistDetails,
+    });
   });
 
   it("does not invalidate while nothing has ever been pushed", async () => {

@@ -13,14 +13,12 @@ import {
 } from "@/api/client";
 import { queryKeys } from "@/lib/queryKeys";
 
-export function invalidateSmartPlaylists(queryClient: QueryClient, id?: number) {
+export function invalidateSmartPlaylists(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylists });
+  queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylistDetails });
   queryClient.invalidateQueries({ queryKey: queryKeys.playlists });
   queryClient.invalidateQueries({ queryKey: queryKeys.playlistDetails });
   queryClient.invalidateQueries({ queryKey: [queryKeys.ruleMatchesRoot] });
-  if (id != null) {
-    queryClient.invalidateQueries({ queryKey: queryKeys.smartPlaylist(id) });
-  }
 }
 
 export function useSmartPlaylistsPage(
@@ -57,7 +55,7 @@ export function useUpdateSmartPlaylist(id: number) {
 
   return useMutation({
     mutationFn: (input: UpdateSmartPlaylistInput) => smartPlaylistsApi.update(id, input),
-    onSuccess: () => invalidateSmartPlaylists(queryClient, id),
+    onSuccess: () => invalidateSmartPlaylists(queryClient),
   });
 }
 
@@ -66,6 +64,6 @@ export function useDeleteSmartPlaylist() {
 
   return useMutation({
     mutationFn: (id: number) => smartPlaylistsApi.remove(id),
-    onSuccess: (_data, id) => invalidateSmartPlaylists(queryClient, id),
+    onSuccess: () => invalidateSmartPlaylists(queryClient),
   });
 }

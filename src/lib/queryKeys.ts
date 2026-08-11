@@ -59,6 +59,7 @@ export const queryKeys = {
   smartPlaylistsPaged: (params: SearchListParams = {}) =>
     [roots.smartPlaylists, "paged", params] as const,
   smartPlaylist: (id: number) => [roots.smartPlaylist, id] as const,
+  smartPlaylistDetails: [roots.smartPlaylist] as const,
   ruleSchema: [roots.ruleSchema] as const,
   ruleMatchesRoot: roots.ruleMatches,
   ruleMatches: (id: number, rules: string, page: number, perPage: number) =>
