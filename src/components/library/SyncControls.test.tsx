@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import type { ApiCollection, Playlist } from "@/api/client";
 import { useSyncStatus } from "@/contexts/SyncStatusContext";
 import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
+import { syncStatusValue } from "@/test/syncStatus";
 import { SyncControls } from "./SyncControls";
 
 vi.mock("@/contexts/SyncStatusContext", () => ({ useSyncStatus: vi.fn() }));
@@ -15,43 +16,7 @@ const mockedUseSyncStatus = vi.mocked(useSyncStatus);
 const mockedUsePlaylistsPage = vi.mocked(usePlaylistsPage);
 const mockedUseLikedPlaylist = vi.mocked(useLikedPlaylist);
 
-type SyncStatus = ReturnType<typeof useSyncStatus>;
-
-function status(overrides: {
-  library?: Partial<SyncStatus["library"]>;
-  artist?: Partial<SyncStatus["artist"]>;
-} = {}): SyncStatus {
-  return {
-    library: {
-      visibleSession: null,
-      hasActiveSync: false,
-      isError: false,
-      start: vi.fn(),
-      isStarting: false,
-      fetchPlaylists: vi.fn(),
-      isFetchingPlaylists: false,
-      dismissSession: vi.fn(),
-      ...overrides.library,
-    },
-    artist: {
-      visibleSession: null,
-      hasActiveSync: false,
-      isError: false,
-      artistsTotal: 10,
-      artistsSynced: 4,
-      hasArtistsToSync: true,
-      start: vi.fn(),
-      isStarting: false,
-      resyncAll: vi.fn(),
-      isResyncing: false,
-      refetchStatus: vi.fn(),
-      dismissSession: vi.fn(),
-      ...overrides.artist,
-    },
-    message: null,
-    show: vi.fn(),
-  };
-}
+const status = syncStatusValue;
 
 function collection(total: number): ApiCollection<Playlist> {
   return { data: [], meta: { page: 1, per_page: 1, total, total_pages: total } };

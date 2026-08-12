@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export function SyncPanel() {
   const { isExpanded, isSuppressed, expand, collapse } = useSyncPanel();
-  const { library, artist } = useSyncStatus();
+  const { library, artist, push } = useSyncStatus();
 
   const expandBtnRef = useRef<HTMLButtonElement>(null);
   const collapseBtnRef = useRef<HTMLButtonElement>(null);
@@ -25,7 +25,8 @@ export function SyncPanel() {
 
   if (isSuppressed) return null;
 
-  const hasActiveSync = library.hasActiveSync || artist.hasActiveSync;
+  const hasActiveSync =
+    library.hasActiveSync || artist.hasActiveSync || push.hasActivePush;
 
   return (
     <aside
@@ -59,8 +60,11 @@ export function SyncPanel() {
               variant="panel"
               librarySession={library.visibleSession}
               artistSession={artist.visibleSession}
+              activePushes={push.activePushes}
+              finishedPushes={push.finishedPushes}
               onDismissLibrary={library.dismissSession}
               onDismissArtist={artist.dismissSession}
+              onDismissPush={push.dismissFinished}
             />
           </div>
         </>

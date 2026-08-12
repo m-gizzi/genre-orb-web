@@ -136,4 +136,27 @@ describe("SmartPlaylistsPage", () => {
 
     expect(await screen.findByText("New smart playlist")).toBeInTheDocument();
   });
+
+  it("offers last pushed as a sort option", async () => {
+    renderPage([smartPlaylist()]);
+    await screen.findByText("Metal Mix");
+
+    const sortTrigger = screen
+      .getAllByRole("combobox")
+      .find((trigger) => trigger.textContent?.includes("Name"));
+    await userEvent.click(sortTrigger!);
+
+    expect(
+      await screen.findByRole("option", { name: "Last pushed" })
+    ).toBeInTheDocument();
+  });
+
+  it("passes a last pushed sort through to the API", async () => {
+    renderPage([smartPlaylist()], "/smart-playlists?sort=last_pushed_at&order=desc");
+    await screen.findByText("Metal Mix");
+
+    expect(mockedApi.paginated).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: "last_pushed_at", order: "desc" })
+    );
+  });
 });

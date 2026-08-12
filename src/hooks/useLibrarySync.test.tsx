@@ -55,7 +55,6 @@ describe("useLibrarySync", () => {
   it("shows the created session immediately after sync, even while status polling still reports none", async () => {
     mockedLibraryApi.getStatus.mockResolvedValue(inactiveStatus);
     mockedLibraryApi.sync.mockResolvedValue({
-      status: "queued",
       session: runningSession,
     });
 

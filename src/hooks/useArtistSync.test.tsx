@@ -86,7 +86,6 @@ describe("useArtistSync", () => {
   it("shows the created session immediately after sync, before polling reports it", async () => {
     mockedArtistsApi.getSyncStatus.mockResolvedValue(idleStatus);
     mockedArtistsApi.sync.mockResolvedValue({
-      status: "queued",
       session: runningSession,
     });
 
@@ -111,7 +110,6 @@ describe("useArtistSync", () => {
   it("passes sync_all when resyncing everything", async () => {
     mockedArtistsApi.getSyncStatus.mockResolvedValue(idleStatus);
     mockedArtistsApi.sync.mockResolvedValue({
-      status: "queued",
       session: runningSession,
     });
 

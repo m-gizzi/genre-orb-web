@@ -10,6 +10,8 @@ import type {
 const roots = {
   libraryStatus: "libraryStatus",
   artistSyncStatus: "artistSyncStatus",
+  pushStatus: "pushStatus",
+  pushMutation: "pushMutation",
   playlists: "playlists",
   playlist: "playlist",
   smartPlaylists: "smartPlaylists",
@@ -52,11 +54,14 @@ export const queryKeys = {
   likedPlaylist: [roots.playlists, "liked"] as const,
   playlistDetails: [roots.playlist] as const,
   artistSyncStatus: [roots.artistSyncStatus] as const,
+  pushStatus: [roots.pushStatus] as const,
+  pushMutation: [roots.pushMutation] as const,
 
   smartPlaylists: [roots.smartPlaylists] as const,
   smartPlaylistsPaged: (params: SearchListParams = {}) =>
     [roots.smartPlaylists, "paged", params] as const,
   smartPlaylist: (id: number) => [roots.smartPlaylist, id] as const,
+  smartPlaylistDetails: [roots.smartPlaylist] as const,
   ruleSchema: [roots.ruleSchema] as const,
   ruleMatchesRoot: roots.ruleMatches,
   ruleMatches: (id: number, rules: string, page: number, perPage: number) =>

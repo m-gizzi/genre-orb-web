@@ -6,6 +6,7 @@ export const SMART_PLAYLIST_SORTS = [
   "name",
   "created_at",
   "last_evaluated_at",
+  "last_pushed_at",
 ] as const;
 
 export type ArtistSort = (typeof ARTIST_SORTS)[number];
