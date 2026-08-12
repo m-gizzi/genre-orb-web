@@ -53,7 +53,7 @@ export function LibraryPage() {
             librarySession={library.visibleSession}
             artistSession={artist.visibleSession}
             activePushes={push.activePushes}
-            finishedPush={push.visibleFinished}
+            finishedPushes={push.finishedPushes}
             onDismissLibrary={library.dismissSession}
             onDismissArtist={artist.dismissSession}
             onDismissPush={push.dismissFinished}

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useMutationState } from "@tanstack/react-query";
 import {
   smartPlaylistsApi,
   apiErrorMessage,
@@ -39,6 +39,7 @@ export function usePushStatus({ enabled, onMessage }: UsePushStatusOptions) {
   const activePushes = statusQuery.data?.active_pushes ?? [];
 
   const pushMutation = useMutation({
+    mutationKey: queryKeys.pushMutation,
     mutationFn: (id: number) => smartPlaylistsApi.push(id),
     onSuccess: async ({ session }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.pushStatus });
@@ -65,7 +66,10 @@ export function usePushStatus({ enabled, onMessage }: UsePushStatusOptions) {
     },
   });
 
-  const pushingId = pushMutation.isPending ? pushMutation.variables : undefined;
+  const pendingIds = useMutationState({
+    filters: { mutationKey: queryKeys.pushMutation, status: "pending" },
+    select: (mutation) => mutation.state.variables as number,
+  });
 
   return {
     status: statusQuery.data,
@@ -78,7 +82,8 @@ export function usePushStatus({ enabled, onMessage }: UsePushStatusOptions) {
     activePushFor: (id: number): PushSession | undefined =>
       activePushes.find((push) => push.smart_playlist_id === id),
     isPushing: (id: number) =>
-      pushingId === id || activePushes.some((push) => push.smart_playlist_id === id),
+      pendingIds.includes(id) ||
+      activePushes.some((push) => push.smart_playlist_id === id),
     push: pushMutation.mutate,
   };
 }

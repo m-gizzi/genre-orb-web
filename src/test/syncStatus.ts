@@ -39,7 +39,7 @@ export function syncStatusValue(
     },
     push: {
       activePushes: [],
-      visibleFinished: null,
+      finishedPushes: [],
       hasActivePush: false,
       isError: false,
       activePushFor: vi.fn(),

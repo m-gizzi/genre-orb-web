@@ -9,6 +9,7 @@ import { useLibrarySync } from "@/hooks/useLibrarySync";
 import { useArtistSync } from "@/hooks/useArtistSync";
 import { usePushStatus } from "@/hooks/usePushStatus";
 import { useAutoDismissSession } from "@/hooks/useAutoDismissSession";
+import { useVisiblePushes } from "@/hooks/useVisiblePushes";
 import {
   useTransientMessage,
   type TransientMessage,
@@ -43,13 +44,13 @@ interface ArtistSyncState {
 
 interface PushState {
   activePushes: PushSession[];
-  visibleFinished: PushSession | null;
+  finishedPushes: PushSession[];
   hasActivePush: boolean;
   isError: boolean;
   activePushFor: (id: number) => PushSession | undefined;
   isPushing: (id: number) => boolean;
   start: (id: number) => void;
-  dismissFinished: () => void;
+  dismissFinished: (id: number) => void;
 }
 
 interface SyncStatusContextType {
@@ -80,8 +81,9 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
     artistSync.currentSession,
     SYNC_NOTICE_TIMEOUT_MS
   );
-  const [visibleFinishedPush, dismissFinishedPush] = useAutoDismissSession(
-    pushStatus.recentPushes[0] ?? null,
+  const [visibleFinishedPushes, dismissFinishedPush] = useVisiblePushes(
+    pushStatus.recentPushes,
+    pushStatus.activePushes,
     SYNC_NOTICE_TIMEOUT_MS
   );
 
@@ -142,7 +144,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
   const push = useMemo<PushState>(
     () => ({
       activePushes: pushStatus.activePushes,
-      visibleFinished: visibleFinishedPush,
+      finishedPushes: visibleFinishedPushes,
       hasActivePush: pushStatus.hasActivePush,
       isError: pushStatus.isError,
       activePushFor: pushStatus.activePushFor,
@@ -152,7 +154,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
     }),
     [
       pushStatus.activePushes,
-      visibleFinishedPush,
+      visibleFinishedPushes,
       pushStatus.hasActivePush,
       pushStatus.isError,
       pushStatus.activePushFor,

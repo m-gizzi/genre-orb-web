@@ -114,6 +114,27 @@ describe("usePushStatus", () => {
     expect(result.current.isPushing(9)).toBe(true);
   });
 
+  it("keeps an in-flight push gated when a second push starts", async () => {
+    mockedApi.pushStatus.mockResolvedValue(idleStatus);
+    mockedApi.push.mockImplementation(
+      () => new Promise<{ session: PushSession }>(() => {})
+    );
+    const { wrapper } = makeWrapper();
+
+    const { result } = renderHook(() => usePushStatus({ enabled: true }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.push(7));
+    await waitFor(() => expect(result.current.isPushing(7)).toBe(true));
+
+    act(() => result.current.push(9));
+    await waitFor(() => expect(result.current.isPushing(9)).toBe(true));
+
+    expect(result.current.isPushing(7)).toBe(true);
+  });
+
   it("invalidates smart playlist data once the last push finishes", async () => {
     mockedApi.pushStatus.mockResolvedValue({
       ...idleStatus,

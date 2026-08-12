@@ -11,24 +11,24 @@ interface SyncActivityProps {
   librarySession: SyncSession | null;
   artistSession: ArtistMetadataSession | null;
   activePushes?: PushSession[];
-  finishedPush?: PushSession | null;
+  finishedPushes?: PushSession[];
   variant?: "inline" | "panel";
   onDismissLibrary?: () => void;
   onDismissArtist?: () => void;
-  onDismissPush?: () => void;
+  onDismissPush?: (id: number) => void;
 }
 
 export function SyncActivity({
   librarySession,
   artistSession,
   activePushes = [],
-  finishedPush = null,
+  finishedPushes = [],
   variant = "inline",
   onDismissLibrary,
   onDismissArtist,
   onDismissPush,
 }: SyncActivityProps) {
-  const pushes = finishedPush ? [...activePushes, finishedPush] : activePushes;
+  const pushes = [...activePushes, ...finishedPushes];
 
   if (!librarySession && !artistSession && pushes.length === 0) {
     if (variant === "panel") {
@@ -52,7 +52,7 @@ export function SyncActivity({
         <PushStatusBanner
           key={push.id}
           session={push}
-          onDismiss={onDismissPush}
+          onDismiss={onDismissPush ? () => onDismissPush(push.id) : undefined}
         />
       ))}
     </div>
