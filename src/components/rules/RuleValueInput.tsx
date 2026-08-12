@@ -20,6 +20,7 @@ import { isRelative, isScalar } from "@/lib/ruleTree";
 import { minutesToMs, msToMinutes, toNumber } from "@/lib/parse";
 import { booleanLabels } from "./booleanLabels";
 import { EntityAutocomplete } from "./EntityAutocomplete";
+import { PlaylistTokenInput } from "./PlaylistTokenInput";
 import { TokenInput } from "./TokenInput";
 
 const UNIT_LABELS: Record<string, string> = {
@@ -55,6 +56,20 @@ export function RuleValueInput({
   onChange,
 }: RuleValueInputProps) {
   const flags = { invalid, describedBy };
+
+  if (arity === "none") return null;
+
+  if (arity === "many" && field.value_type === "playlist") {
+    return (
+      <PlaylistTokenInput
+        values={asIds(value)}
+        label={field.label}
+        maxValues={schema.max_list_size}
+        {...flags}
+        onChange={onChange}
+      />
+    );
+  }
 
   if (arity === "many") {
     return (
@@ -234,15 +249,22 @@ function ScalarInput({
         />
       );
 
+    case "playlist":
+      return <Unsupported kind={field.value_type} />;
+
     default: {
       const unhandled: never = field.value_type;
-      return (
-        <span className="self-center text-sm text-destructive">
-          This build can't edit “{String(unhandled)}” values — update the app.
-        </span>
-      );
+      return <Unsupported kind={String(unhandled)} />;
     }
   }
+}
+
+function Unsupported({ kind }: { kind: string }) {
+  return (
+    <span className="self-center text-sm text-destructive">
+      This build can't edit “{kind}” values — update the app.
+    </span>
+  );
 }
 
 interface RelativeDateInputProps {
@@ -323,6 +345,12 @@ function toMinutes(
 
 function asStrings(value: RuleValue): string[] {
   return Array.isArray(value) ? value.map(String) : [];
+}
+
+function asIds(value: RuleValue): number[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((item): item is number => typeof item === "number");
 }
 
 function partialRelative(value: RuleValue): Partial<RelativeValue> | null {

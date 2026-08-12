@@ -80,6 +80,7 @@ function detail(overrides: Partial<SmartPlaylistDetail> = {}): SmartPlaylistDeta
     source_playlists: [
       { id: 4, name: "Road Trip", spotify_id: "s4", is_liked_songs: false },
     ],
+    rule_playlists: [],
     ...overrides,
   } as SmartPlaylistDetail;
 }
@@ -215,6 +216,27 @@ describe("SmartPlaylistDetailPage", () => {
     expect(await screen.findByText("Match ALL of")).toBeInTheDocument();
     expect(screen.getByText("Genre is “metal”")).toBeInTheDocument();
     expect(document.querySelector("pre")).toBeNull();
+  });
+
+  it("names the playlists a rule refers to by id", async () => {
+    const excludes: RuleGroup = {
+      match: "all",
+      rules: [{ field: "playlist", operator: "not_in", value: [12] }],
+    };
+
+    renderDetail(
+      detail({
+        is_ready: true,
+        rules: excludes,
+        rule_playlists: [
+          { id: 12, name: "Already Heard", spotify_id: "s12", is_liked_songs: false },
+        ],
+      }),
+    );
+
+    expect(
+      await screen.findByText("Playlist is none of “Already Heard”"),
+    ).toBeInTheDocument();
   });
 
   it("links to the rule editor", async () => {

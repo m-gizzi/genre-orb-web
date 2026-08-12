@@ -18,9 +18,15 @@ describe("rule schema fixture", () => {
     "duration",
     "boolean",
     "date",
+    "playlist",
   ];
 
-  const SUGGESTABLE: RuleSuggestSource[] = ["genres", "artists", "albums"];
+  const SUGGESTABLE: RuleSuggestSource[] = [
+    "genres",
+    "artists",
+    "albums",
+    "playlists",
+  ];
 
   it("gives every field at least one operator", () => {
     for (const field of ruleSchema.fields) {
@@ -103,7 +109,7 @@ describe("rule schema fixture", () => {
   });
 
   describe("every pairing the schema advertises", () => {
-    const ARITIES: RuleArity[] = ["one", "two", "many", "relative"];
+    const ARITIES: RuleArity[] = ["one", "two", "many", "relative", "none"];
 
     function sampleScalar(field: RuleFieldSpec): RuleScalar {
       switch (field.value_type) {
@@ -116,6 +122,8 @@ describe("rule schema fixture", () => {
           return true;
         case "date":
           return "2024-01-15";
+        case "playlist":
+          return 42;
       }
     }
 
@@ -130,6 +138,8 @@ describe("rule schema fixture", () => {
           return [scalar];
         case "relative":
           return { count: 1, unit: ruleSchema.relative_units[0]! };
+        case "none":
+          return null;
       }
     }
 

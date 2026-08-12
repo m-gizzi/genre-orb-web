@@ -351,6 +351,8 @@ export function fitsField(value: RuleScalar, field: RuleFieldSpec): boolean {
       return typeof value === "boolean";
     case "date":
       return typeof value === "string" && ISO_DATE.test(value) && isRealDate(value);
+    case "playlist":
+      return Number.isInteger(value) && (value as number) > 0;
     default:
       return false;
   }
@@ -380,6 +382,9 @@ export function isValueComplete(
       );
     case "relative":
       return isRelative(value) && schema.relative_units.includes(value.unit);
+    case "none":
+      // The operator is the whole condition; a value here means a stale draft.
+      return value === null;
   }
 }
 
@@ -489,7 +494,7 @@ export function coerceValue(
     return isScalar(value) ? [value, value] : null;
   }
 
-  if (to === "relative") return null;
+  if (to === "relative" || to === "none") return null;
 
   return isScalar(value) ? value : null;
 }

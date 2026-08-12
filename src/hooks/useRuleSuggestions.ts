@@ -2,6 +2,7 @@ import type { RuleFieldSpec } from "@/api/client";
 import { useAlbums } from "@/hooks/useAlbums";
 import { useArtists } from "@/hooks/useArtists";
 import { useGenres } from "@/hooks/useGenres";
+import { usePlaylistsPage } from "@/hooks/usePlaylists";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { SuggestOption } from "@/components/catalog/SuggestCombobox";
 
@@ -23,6 +24,7 @@ export function useRuleSuggestions(
   const genres = useGenres(params, ready && suggest === "genres");
   const artists = useArtists(params, ready && suggest === "artists");
   const albums = useAlbums(params, ready && suggest === "albums");
+  const playlists = usePlaylistsPage(params, ready && suggest === "playlists");
 
   const settling = query.trim() !== debounced;
 
@@ -41,6 +43,11 @@ export function useRuleSuggestions(
       return {
         options: (albums.data?.data ?? []).map((a) => ({ id: a.id, label: a.title })),
         isLoading: settling || albums.isFetching,
+      };
+    case "playlists":
+      return {
+        options: (playlists.data?.data ?? []).map((p) => ({ id: p.id, label: p.name })),
+        isLoading: settling || playlists.isFetching,
       };
     default:
       return { options: [], isLoading: false };
