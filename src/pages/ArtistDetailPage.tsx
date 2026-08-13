@@ -15,6 +15,7 @@ import {
   TrackTable,
 } from "@/components/catalog";
 import { formatNumber } from "@/lib/format";
+import { groupGenres } from "@/lib/genres";
 
 export function ArtistDetailPage() {
   const { id } = useParams();
@@ -49,6 +50,7 @@ export function ArtistDetailPage() {
   }
 
   const data = artist.data;
+  const groupedGenres = groupGenres(data.genres);
   const meta = [
     data.followers != null && `${formatNumber(data.followers)} followers`,
     data.popularity != null && `Popularity ${data.popularity}`,
@@ -71,13 +73,10 @@ export function ArtistDetailPage() {
         <div>
           <h1 className="font-heading text-2xl font-semibold">{data.name}</h1>
           {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
-          {data.genres.length > 0 && (
+          {groupedGenres.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {data.genres.map((genre) => (
-                <GenreChip
-                  key={genre.id}
-                  genre={{ genre_id: genre.id, name: genre.name }}
-                />
+              {groupedGenres.map((genre) => (
+                <GenreChip key={genre.genre_id} genre={genre} />
               ))}
             </div>
           )}

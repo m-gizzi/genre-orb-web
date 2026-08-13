@@ -11,10 +11,25 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatDuration, formatNumber } from "@/lib/format";
+import { groupGenres } from "@/lib/genres";
 import { cn } from "@/lib/utils";
 import { ArtistLinks, AlbumLink, GenreChip } from "./links";
 
 const MAX_GENRES = 3;
+
+function GenreCell({ genres }: { genres: Track["genres"] }) {
+  const grouped = groupGenres(genres);
+  return (
+    <div className="flex flex-wrap gap-1">
+      {grouped.slice(0, MAX_GENRES).map((genre) => (
+        <GenreChip key={genre.genre_id} genre={genre} />
+      ))}
+      {grouped.length > MAX_GENRES && (
+        <span className="text-xs text-muted-foreground">+{grouped.length - MAX_GENRES}</span>
+      )}
+    </div>
+  );
+}
 
 function AlbumThumb({ url, alt }: { url: string | null; alt: string }) {
   if (!url) {
@@ -103,16 +118,7 @@ export function TrackTable({
               </div>
             </TableCell>
             <TableCell className="hidden xl:table-cell">
-              <div className="flex flex-wrap gap-1">
-                {track.genres.slice(0, MAX_GENRES).map((genre) => (
-                  <GenreChip key={genre.id} genre={genre} />
-                ))}
-                {track.genres.length > MAX_GENRES && (
-                  <span className="text-xs text-muted-foreground">
-                    +{track.genres.length - MAX_GENRES}
-                  </span>
-                )}
-              </div>
+              <GenreCell genres={track.genres} />
             </TableCell>
             <TableCell
               className={cn(

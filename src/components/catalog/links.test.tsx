@@ -57,7 +57,7 @@ describe("AlbumLink", () => {
 describe("GenreChip", () => {
   it("links to the genre by genre_id and marks the source", () => {
     renderWithProviders(
-      <GenreChip genre={{ genre_id: 12, name: "Jazz", source: "spotify" }} />
+      <GenreChip genre={{ genre_id: 12, name: "Jazz", sources: ["spotify"] }} />
     );
     const link = screen.getByRole("link", { name: "Jazz" });
     expect(link).toHaveAttribute("href", "/genres/12");
@@ -66,11 +66,39 @@ describe("GenreChip", () => {
 
   it("labels a user-added genre", () => {
     renderWithProviders(
-      <GenreChip genre={{ genre_id: 5, name: "Chill", source: "user" }} />
+      <GenreChip genre={{ genre_id: 5, name: "Chill", sources: ["user"] }} />
     );
     expect(screen.getByRole("link", { name: "Chill" })).toHaveAttribute(
       "title",
       "Added by you"
     );
+  });
+
+  it("names every source that agreed on the genre", () => {
+    renderWithProviders(
+      <GenreChip
+        genre={{ genre_id: 3, name: "Metal", sources: ["spotify", "musicbrainz"] }}
+      />
+    );
+    expect(screen.getByRole("link", { name: /Metal/ })).toHaveAttribute(
+      "title",
+      "From Spotify and MusicBrainz"
+    );
+  });
+
+  it("shows how many sources agreed, so corroboration reads as a signal", () => {
+    renderWithProviders(
+      <GenreChip
+        genre={{ genre_id: 3, name: "Metal", sources: ["spotify", "musicbrainz", "lastfm"] }}
+      />
+    );
+    expect(screen.getByRole("link", { name: /Metal/ })).toHaveTextContent("3");
+  });
+
+  it("shows no count for a genre only one source claimed", () => {
+    renderWithProviders(
+      <GenreChip genre={{ genre_id: 3, name: "Metal", sources: ["spotify"] }} />
+    );
+    expect(screen.getByRole("link", { name: "Metal" })).toHaveTextContent(/^Metal$/);
   });
 });

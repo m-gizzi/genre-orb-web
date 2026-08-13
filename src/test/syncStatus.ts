@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { EMPTY_ENRICHMENT_COVERAGE } from "@/api/client";
 import type { useSyncStatus } from "@/contexts/SyncStatusContext";
 
 type SyncStatus = ReturnType<typeof useSyncStatus>;
@@ -29,6 +30,7 @@ export function syncStatusValue(
       isError: false,
       artistsTotal: 10,
       artistsSynced: 4,
+      enrichment: EMPTY_ENRICHMENT_COVERAGE,
       hasArtistsToSync: true,
       start: vi.fn(),
       isStarting: false,

@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   artistsApi,
   apiErrorMessage,
+  EMPTY_ENRICHMENT_COVERAGE,
   type ArtistMetadataSession,
   type ArtistSyncStatus,
 } from "@/api/client";
@@ -23,6 +24,7 @@ const EMPTY_STATUS: ArtistSyncStatus = {
   artists_total: 0,
   artists_synced: 0,
   needs_reauth: false,
+  enrichment: EMPTY_ENRICHMENT_COVERAGE,
 };
 
 export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
@@ -76,6 +78,7 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
 
   const artistsTotal = statusQuery.data?.artists_total ?? 0;
   const artistsSynced = statusQuery.data?.artists_synced ?? 0;
+  const enrichment = statusQuery.data?.enrichment ?? EMPTY_ENRICHMENT_COVERAGE;
 
   return {
     status: statusQuery.data,
@@ -86,6 +89,7 @@ export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {
     currentSession: statusQuery.data?.current_session ?? null,
     artistsTotal,
     artistsSynced,
+    enrichment,
     hasArtistsToSync: artistsTotal > artistsSynced,
     sync: syncMutation.mutate,
     isSyncing: syncMutation.isPending,

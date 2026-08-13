@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type {
   ArtistMetadataSession,
+  EnrichmentCoverage,
+  EnrichmentSource,
   PushSession,
   SyncSession,
 } from "@/api/client";
@@ -34,6 +36,7 @@ interface ArtistSyncState {
   isError: boolean;
   artistsTotal: number;
   artistsSynced: number;
+  enrichment: Record<EnrichmentSource, EnrichmentCoverage>;
   hasArtistsToSync: boolean;
   start: () => void;
   isStarting: boolean;
@@ -125,6 +128,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
       isError: artistSync.isError,
       artistsTotal: artistSync.artistsTotal,
       artistsSynced: artistSync.artistsSynced,
+      enrichment: artistSync.enrichment,
       hasArtistsToSync: artistSync.hasArtistsToSync,
       start: artistSync.sync,
       isStarting: artistSync.isSyncing,
@@ -139,6 +143,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
       artistSync.isError,
       artistSync.artistsTotal,
       artistSync.artistsSynced,
+      artistSync.enrichment,
       artistSync.hasArtistsToSync,
       artistSync.sync,
       artistSync.isSyncing,

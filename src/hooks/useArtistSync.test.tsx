@@ -4,6 +4,7 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   artistsApi,
+  EMPTY_ENRICHMENT_COVERAGE,
   type ArtistMetadataSession,
   type ArtistSyncStatus,
 } from "@/api/client";
@@ -30,6 +31,7 @@ const idleStatus: ArtistSyncStatus = {
   artists_total: 10,
   artists_synced: 4,
   needs_reauth: false,
+  enrichment: EMPTY_ENRICHMENT_COVERAGE,
 };
 
 const runningSession: ArtistMetadataSession = {
