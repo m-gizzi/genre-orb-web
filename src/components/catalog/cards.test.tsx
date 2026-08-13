@@ -11,8 +11,8 @@ function makeArtist(overrides: Partial<Artist> = {}): Artist {
     spotify_id: "sp1",
     image_url: null,
     genres: [
-      { id: 1, name: "Rock" },
-      { id: 2, name: "Alternative" },
+      { id: 1, genre_id: 1, name: "Rock", source: "spotify", confidence: 1 },
+      { id: 2, genre_id: 2, name: "Alternative", source: "spotify", confidence: 1 },
     ],
     followers: null,
     popularity: null,
@@ -38,7 +38,8 @@ describe("ArtistCard", () => {
   it("links to the artist and joins genre names", () => {
     renderWithProviders(<ArtistCard artist={makeArtist()} />);
     expect(screen.getByRole("link")).toHaveAttribute("href", "/artists/1");
-    expect(screen.getByText("Rock, Alternative")).toBeInTheDocument();
+    // Grouped genres come back ordered by corroboration, then confidence, then name.
+    expect(screen.getByText("Alternative, Rock")).toBeInTheDocument();
   });
 
   it("renders the image when present", () => {

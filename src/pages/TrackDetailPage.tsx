@@ -6,6 +6,7 @@ import { ArtistLinks, AlbumLink, GenreChip, ErrorState } from "@/components/cata
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDuration, formatNumber } from "@/lib/format";
+import { groupGenres } from "@/lib/genres";
 
 export function TrackDetailPage() {
   const { id } = useParams();
@@ -27,6 +28,7 @@ export function TrackDetailPage() {
   if (!query.data) return null;
 
   const track = query.data;
+  const groupedGenres = groupGenres(track.genres);
 
   return (
     <div>
@@ -79,10 +81,10 @@ export function TrackDetailPage() {
 
       <div className="mt-8">
         <h2 className="mb-2 font-heading text-lg font-medium">Genres</h2>
-        {track.genres.length > 0 ? (
+        {groupedGenres.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
-            {track.genres.map((genre) => (
-              <GenreChip key={genre.id} genre={genre} />
+            {groupedGenres.map((genre) => (
+              <GenreChip key={genre.genre_id} genre={genre} />
             ))}
           </div>
         ) : (

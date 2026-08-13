@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/library/ProgressBar";
+import { EnrichmentCoverage } from "@/components/library/EnrichmentCoverage";
 import { useSyncStatus } from "@/contexts/SyncStatusContext";
 import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
 import { formatDateTime } from "@/lib/format";
@@ -137,6 +138,8 @@ export function SyncControls({ enabled }: SyncControlsProps) {
           </div>
         </section>
       ) : null}
+
+      {artist.artistsTotal > 0 && <EnrichmentCoverage coverage={artist.enrichment} />}
     </div>
   );
 }

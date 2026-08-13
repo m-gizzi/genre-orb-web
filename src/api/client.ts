@@ -297,13 +297,14 @@ export interface AlbumSummary {
   artwork_url: string | null;
 }
 
-export type GenreSource = "spotify" | "user";
+export type GenreSource = "spotify" | "musicbrainz" | "lastfm" | "user";
 
-export interface TrackGenre {
+export interface SourcedGenre {
   id: number;
   genre_id: number;
   name: string;
   source: GenreSource;
+  confidence: number;
 }
 
 export interface Track {
@@ -317,7 +318,7 @@ export interface Track {
   preview_url: string | null;
   album: AlbumSummary | null;
   artists: ArtistSummary[];
-  genres: TrackGenre[];
+  genres: SourcedGenre[];
 }
 
 export interface Artist {
@@ -325,13 +326,24 @@ export interface Artist {
   name: string;
   spotify_id: string;
   image_url: string | null;
-  genres: Genre[];
+  genres: SourcedGenre[];
   followers: number | null;
   popularity: number | null;
 }
 
+export type MetadataSourceState = "pending" | "matched" | "unmatched" | "errored";
+
+export interface ArtistMetadataSource {
+  source: EnrichmentSource;
+  state: MetadataSourceState;
+  external_id: string | null;
+  external_url: string | null;
+  fetched_at: string | null;
+}
+
 export interface ArtistDetail extends Artist {
   albums: Album[];
+  metadata_sources: ArtistMetadataSource[];
 }
 
 export interface Album {
@@ -488,6 +500,24 @@ export interface ArtistMetadataSession {
   completed_at: string | null;
 }
 
+export interface EnrichmentCoverage {
+  total: number;
+  fetched: number;
+  matched: number;
+  unmatched: number;
+  errored: number;
+  pending: number;
+}
+
+export type EnrichmentSource = "musicbrainz" | "lastfm";
+
+export const ENRICHMENT_SOURCES: EnrichmentSource[] = ["musicbrainz", "lastfm"];
+
+export const EMPTY_ENRICHMENT_COVERAGE: Record<EnrichmentSource, EnrichmentCoverage> = {
+  musicbrainz: { total: 0, fetched: 0, matched: 0, unmatched: 0, errored: 0, pending: 0 },
+  lastfm: { total: 0, fetched: 0, matched: 0, unmatched: 0, errored: 0, pending: 0 },
+};
+
 export interface ArtistSyncStatus {
   has_active_sync: boolean;
   current_session: ArtistMetadataSession | null;
@@ -496,6 +526,7 @@ export interface ArtistSyncStatus {
   artists_total: number;
   artists_synced: number;
   needs_reauth: boolean;
+  enrichment: Record<EnrichmentSource, EnrichmentCoverage>;
 }
 
 export type PushSessionStatus =

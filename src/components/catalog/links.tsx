@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import type { ArtistSummary, AlbumSummary, TrackGenre } from "@/api/client";
+import type { ArtistSummary, AlbumSummary } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
+import { describeSources, type GroupedGenre } from "@/lib/genres";
 import { cn } from "@/lib/utils";
 
 const linkClass = "hover:text-primary hover:underline underline-offset-2";
@@ -56,19 +57,24 @@ export function AlbumLink({
   );
 }
 
-export function GenreChip({
-  genre,
-}: {
-  genre: Pick<TrackGenre, "genre_id" | "name"> & { source?: TrackGenre["source"] };
-}) {
-  const fromUser = genre.source === "user";
+export function GenreChip({ genre }: { genre: GroupedGenre }) {
+  const { sources } = genre;
+  const fromUserOnly = sources.length === 1 && sources[0] === "user";
+  const corroborated = sources.length > 1;
+
   return (
     <Badge
-      variant={fromUser ? "outline" : "secondary"}
-      title={fromUser ? "Added by you" : "From Spotify"}
+      variant={fromUserOnly ? "outline" : "secondary"}
+      title={describeSources(sources)}
+      className={cn(corroborated && "ring-1 ring-inset ring-primary/30")}
       render={<Link to={`/genres/${genre.genre_id}`} />}
     >
       {genre.name}
+      {corroborated && (
+        <span aria-hidden="true" className="ml-1 text-[0.65rem] tabular-nums opacity-60">
+          {sources.length}
+        </span>
+      )}
     </Badge>
   );
 }

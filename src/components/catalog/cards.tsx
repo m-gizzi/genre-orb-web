@@ -3,9 +3,12 @@ import { UserIcon, Disc3Icon } from "lucide-react";
 import type { Artist, Album } from "@/api/client";
 import { Card } from "@/components/ui/card";
 import { formatNumber } from "@/lib/format";
+import { groupGenres } from "@/lib/genres";
 
 export function ArtistCard({ artist }: { artist: Artist }) {
-  const genreText = artist.genres.map((genre) => genre.name).join(", ");
+  const genreText = groupGenres(artist.genres)
+    .map((genre) => genre.name)
+    .join(", ");
   return (
     <Link to={`/artists/${artist.id}`} className="block">
       <Card className="gap-3 p-4 text-center transition-colors hover:ring-primary/40">
