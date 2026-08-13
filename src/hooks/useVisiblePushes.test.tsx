@@ -10,6 +10,7 @@ function pushSession(overrides: Partial<PushSession> = {}): PushSession {
   return {
     id: 1,
     status: "running",
+    trigger: "manual",
     progress: { total: 2, completed: 0, percent: 0 },
     error_message: null,
     started_at: null,
@@ -61,6 +62,24 @@ describe("useVisiblePushes", () => {
     rerender({ recent: [completed], active: [] });
 
     expect(result.current[0]).toEqual([completed]);
+  });
+
+  it("never surfaces a push the scheduler started", () => {
+    const running = pushSession({ id: 1, status: "running", trigger: "scheduled" });
+    const { result, rerender } = renderVisiblePushes({
+      recent: [],
+      active: [running],
+    });
+
+    const completed = pushSession({
+      id: 1,
+      status: "completed",
+      trigger: "scheduled",
+      completed_at: NOW.toISOString(),
+    });
+    rerender({ recent: [completed], active: [] });
+
+    expect(result.current[0]).toEqual([]);
   });
 
   it("keeps an earlier finished push visible when a later one finishes", () => {

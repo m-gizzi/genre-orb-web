@@ -9,6 +9,7 @@ const STATUS_LABEL: Record<PushSessionStatus, (name: string) => string> = {
   running: (name) => `Pushing ${name} to Spotify...`,
   completed: (name) => `Pushed ${name} to Spotify`,
   failed: (name) => `Push of ${name} failed`,
+  skipped: (name) => `Nothing to push for ${name}`,
 };
 
 function changeSummary(session: PushSession): string | undefined {

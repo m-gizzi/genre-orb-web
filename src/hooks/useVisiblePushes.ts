@@ -12,7 +12,9 @@ export function useVisiblePushes(
 
   useEffect(() => {
     setWatchedIds((previous) => {
-      const unseen = activePushes.filter((push) => !previous.has(push.id));
+      const unseen = activePushes.filter(
+        (push) => push.trigger === "manual" && !previous.has(push.id)
+      );
       if (unseen.length === 0) return previous;
       const next = new Set(previous);
       unseen.forEach((push) => next.add(push.id));

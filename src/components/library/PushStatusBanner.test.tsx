@@ -8,6 +8,7 @@ function session(overrides: Partial<PushSession> = {}): PushSession {
   return {
     id: 1,
     status: "running",
+    trigger: "manual",
     progress: { total: 4, completed: 1, percent: 25 },
     error_message: null,
     started_at: "2026-08-05T00:00:00Z",
@@ -28,6 +29,21 @@ describe("PushStatusBanner", () => {
     render(<PushStatusBanner session={session()} />);
 
     expect(screen.getByText("Pushing Metal Mix to Spotify...")).toBeInTheDocument();
+  });
+
+  it("reads a zero-match push as nothing to do, not a failure", () => {
+    render(
+      <PushStatusBanner
+        session={session({
+          status: "skipped",
+          error_message: "These rules match no tracks, so there is nothing to push.",
+          tracks_added: 0,
+          tracks_removed: 0,
+        })}
+      />
+    );
+
+    expect(screen.getByText("Nothing to push for Metal Mix")).toBeInTheDocument();
   });
 
   it("shows progress while the push is running", () => {

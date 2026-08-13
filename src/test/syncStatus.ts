@@ -13,6 +13,7 @@ export function syncStatusValue(
   return {
     library: {
       visibleSession: null,
+      nextScheduledRunAt: null,
       hasActiveSync: false,
       isError: false,
       start: vi.fn(),

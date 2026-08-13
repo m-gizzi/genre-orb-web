@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { PanelRightCloseIcon, PanelRightOpenIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SyncActivity } from "@/components/library";
+import { useAuth } from "@/contexts/AuthContext";
 import { useSyncPanel } from "@/contexts/SyncPanelContext";
 import { useSyncStatus } from "@/contexts/SyncStatusContext";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,7 @@ import { cn } from "@/lib/utils";
 export function SyncPanel() {
   const { isExpanded, isSuppressed, expand, collapse } = useSyncPanel();
   const { library, artist, push } = useSyncStatus();
+  const { user } = useAuth();
 
   const expandBtnRef = useRef<HTMLButtonElement>(null);
   const collapseBtnRef = useRef<HTMLButtonElement>(null);
@@ -62,6 +64,7 @@ export function SyncPanel() {
               artistSession={artist.visibleSession}
               activePushes={push.activePushes}
               finishedPushes={push.finishedPushes}
+              needsReauth={!!user?.spotify_needs_reauth}
               onDismissLibrary={library.dismissSession}
               onDismissArtist={artist.dismissSession}
               onDismissPush={push.dismissFinished}

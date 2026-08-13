@@ -11,6 +11,7 @@ import { SyncActivity } from "./SyncActivity";
 const librarySession: SyncSession = {
   id: 1,
   status: "running",
+  trigger: "manual",
   progress: { total: 2, completed: 1, skipped: 0, failed: 0, percent: 50 },
   error_message: null,
   started_at: null,
@@ -21,6 +22,7 @@ const librarySession: SyncSession = {
 const artistSession: ArtistMetadataSession = {
   id: 2,
   status: "running",
+  trigger: "manual",
   progress: { total: 4, completed: 1, percent: 25 },
   error_message: null,
   started_at: null,
@@ -31,6 +33,7 @@ function pushSession(overrides: Partial<PushSession> = {}): PushSession {
   return {
     id: 10,
     status: "running",
+    trigger: "manual",
     progress: { total: 10, completed: 5, percent: 50 },
     error_message: null,
     started_at: null,
@@ -57,6 +60,14 @@ describe("SyncActivity", () => {
 
     expect(screen.getByText("Syncing library...")).toBeInTheDocument();
     expect(screen.getByText("Syncing artist metadata...")).toBeInTheDocument();
+  });
+
+  it("surfaces the reconnect prompt even with nothing in flight", () => {
+    render(
+      <SyncActivity librarySession={null} artistSession={null} needsReauth />
+    );
+
+    expect(screen.getByText("Spotify access has expired")).toBeInTheDocument();
   });
 
   it("renders nothing inline when there are no sessions", () => {

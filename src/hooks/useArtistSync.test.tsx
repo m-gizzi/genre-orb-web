@@ -29,11 +29,13 @@ const idleStatus: ArtistSyncStatus = {
   rate_limit_resume_at: null,
   artists_total: 10,
   artists_synced: 4,
+  needs_reauth: false,
 };
 
 const runningSession: ArtistMetadataSession = {
   id: 1,
   status: "running",
+  trigger: "manual",
   progress: { total: 5, completed: 0, percent: 0 },
   error_message: null,
   started_at: null,
