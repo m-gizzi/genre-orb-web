@@ -34,7 +34,7 @@ import { ErrorState } from "@/components/catalog";
 import { DeleteSmartPlaylistDialog } from "@/components/smartPlaylists/DeleteSmartPlaylistDialog";
 import { SourcePlaylistPicker } from "@/components/smartPlaylists/SourcePlaylistPicker";
 import {
-  PlaylistNamesProvider,
+  RulePlaylistsProvider,
   RuleGroupCard,
   RuleMatchesPanel,
 } from "@/components/rules";
@@ -295,7 +295,7 @@ function RuleSummary({
   }
 
   return (
-    <PlaylistNamesProvider known={rulePlaylists}>
+    <RulePlaylistsProvider known={rulePlaylists}>
       <RuleGroupCard
         group={tree}
         root={tree}
@@ -303,7 +303,7 @@ function RuleSummary({
         path={[]}
         editable={false}
       />
-    </PlaylistNamesProvider>
+    </RulePlaylistsProvider>
   );
 }
 

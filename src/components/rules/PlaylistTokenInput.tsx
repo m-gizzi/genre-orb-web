@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { AlertTriangleIcon, XIcon } from "lucide-react";
-import { useRuleSuggestions } from "@/hooks/useRuleSuggestions";
+import { usePlaylistSuggestions } from "@/hooks/usePlaylistSuggestions";
 import { Badge } from "@/components/ui/badge";
 import { SuggestCombobox } from "@/components/catalog/SuggestCombobox";
-import { playlistLabel, usePlaylistNames } from "./playlistNames";
+import { playlistLabel, useRulePlaylists } from "./rulePlaylists";
 
 interface PlaylistTokenInputProps {
   values: number[];
@@ -23,15 +23,18 @@ export function PlaylistTokenInput({
   onChange,
 }: PlaylistTokenInputProps) {
   const [query, setQuery] = useState("");
-  const suggestions = useRuleSuggestions("playlists", query);
-  const { nameOf, hasNothingToMatch, remember } = usePlaylistNames();
+  const suggestions = usePlaylistSuggestions(query);
+  const { nameOf, hasNothingToMatch, excludedId, remember } = useRulePlaylists();
   const full = values.length >= maxValues;
   const anyEmpty = values.some((id) => hasNothingToMatch(id));
 
-  function add(id: number, name: string) {
+  function add(id: number) {
     if (full || values.includes(id)) return;
 
-    remember(id, name);
+    const chosen = suggestions.options.find((option) => option.id === id);
+    if (!chosen) return;
+
+    remember({ id, name: chosen.label, trackCount: chosen.trackCount });
     onChange([...values, id]);
   }
 
@@ -52,10 +55,10 @@ export function PlaylistTokenInput({
           query={query}
           onQueryChange={setQuery}
           options={suggestions.options.filter(
-            (option) => !values.includes(Number(option.id)),
+            (option) => !values.includes(option.id) && option.id !== excludedId,
           )}
           loading={suggestions.isLoading}
-          onSelect={(option) => add(Number(option.id), option.label)}
+          onSelect={(option) => add(Number(option.id))}
           onBackspaceEmpty={() => removeAt(values.length - 1)}
           ariaLabel={`${label} values`}
           placeholder={values.length ? "Add another…" : `${label}…`}

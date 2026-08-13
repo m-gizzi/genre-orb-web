@@ -383,8 +383,10 @@ export function isValueComplete(
     case "relative":
       return isRelative(value) && schema.relative_units.includes(value.unit);
     case "none":
-      // The operator is the whole condition; a value here means a stale draft.
-      return value === null;
+      // The operator is the whole condition. The API accepts a condition that
+      // leaves the key out entirely, so absent counts the same as null; a value
+      // that is actually there means a stale draft.
+      return value == null;
   }
 }
 

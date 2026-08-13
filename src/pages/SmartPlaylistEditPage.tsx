@@ -23,7 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/catalog";
 import {
-  PlaylistNamesProvider,
+  RulePlaylistsProvider,
   RuleGroupCard,
   RuleMatchesPanel,
   type RuleTreeHandlers,
@@ -84,9 +84,12 @@ export function SmartPlaylistEditPage() {
   }
 
   return (
-    <PlaylistNamesProvider known={detail.data.rule_playlists}>
+    <RulePlaylistsProvider
+      known={detail.data.rule_playlists}
+      excludedId={detail.data.target_playlist.id}
+    >
       <RuleEditor smartPlaylist={detail.data} schema={schema.data} />
-    </PlaylistNamesProvider>
+    </RulePlaylistsProvider>
   );
 }
 

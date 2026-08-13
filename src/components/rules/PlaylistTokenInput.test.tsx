@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ApiCollection, Playlist, PlaylistSummary } from "@/api/client";
@@ -7,21 +7,25 @@ import { playlistsApi } from "@/api/client";
 import { renderWithProviders } from "@/test/utils";
 import { ruleSchema } from "@/test/ruleSchema";
 import { PlaylistTokenInput } from "./PlaylistTokenInput";
-import { PlaylistNamesProvider } from "./playlistNames";
+import { RulePlaylistsProvider } from "./rulePlaylists";
 
 vi.mock("@/api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/client")>();
   return {
     ...actual,
-    playlistsApi: { paginated: vi.fn() },
+    playlistsApi: { paginated: vi.fn(), liked: vi.fn() },
   };
 });
 
 const mockedPlaylists = vi.mocked(playlistsApi);
 
-function page(names: Record<number, string>): ApiCollection<Playlist> {
+function page(
+  names: Record<number, string>,
+  overrides: Partial<Playlist> = {},
+): ApiCollection<Playlist> {
   const data = Object.entries(names).map(
-    ([id, name]) => ({ id: Number(id), name }) as Playlist,
+    ([id, name]) =>
+      ({ id: Number(id), name, track_count: 12, ...overrides }) as Playlist,
   );
   return {
     data,
@@ -45,18 +49,25 @@ function summary(
   };
 }
 
+// Liked Songs is its own request, and answering it is not the point of most of
+// these; the tests that care set it themselves.
+beforeEach(() => mockedPlaylists.liked.mockResolvedValue(null));
 afterEach(() => vi.clearAllMocks());
 
 function renderTokens(
   initial: number[] = [],
-  { known = [] as PlaylistSummary[], maxValues = ruleSchema.max_list_size } = {},
+  {
+    known = [] as PlaylistSummary[],
+    maxValues = ruleSchema.max_list_size,
+    excludedId = undefined as number | undefined,
+  } = {},
 ) {
   const onChange = vi.fn();
 
   function Harness() {
     const [values, setValues] = useState(initial);
     return (
-      <PlaylistNamesProvider known={known}>
+      <RulePlaylistsProvider known={known} excludedId={excludedId}>
         <PlaylistTokenInput
           values={values}
           label="Playlist"
@@ -66,7 +77,7 @@ function renderTokens(
             setValues(next);
           }}
         />
-      </PlaylistNamesProvider>
+      </RulePlaylistsProvider>
     );
   }
 
@@ -132,6 +143,57 @@ describe("PlaylistTokenInput", () => {
 
     expect(
       screen.queryByText(/Marked playlists have no synced tracks yet/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("marks a playlist as empty as soon as it is picked", async () => {
+    mockedPlaylists.paginated.mockResolvedValue(
+      page({ 7: "Fresh Playlist" }, { track_count: 0 }),
+    );
+    const { onChange } = renderTokens();
+
+    await userEvent.type(tokenInput(), "fresh");
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Fresh Playlist" }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith([7]);
+    expect(
+      screen.getByText(/Marked playlists have no synced tracks yet/),
+    ).toBeInTheDocument();
+  });
+
+  it("offers Liked Songs, which the playlists index leaves out", async () => {
+    mockedPlaylists.paginated.mockResolvedValue(page({}));
+    mockedPlaylists.liked.mockResolvedValue({
+      id: 1,
+      name: "Liked Songs",
+      track_count: 500,
+    } as Playlist);
+    const { onChange } = renderTokens();
+
+    await userEvent.type(tokenInput(), "liked");
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Liked Songs" }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith([1]);
+    expect(screen.getByText("Liked Songs")).toBeInTheDocument();
+  });
+
+  it("never offers the playlist this rule set fills", async () => {
+    mockedPlaylists.paginated.mockResolvedValue(
+      page({ 3: "Metal Mix", 8: "Metal Sampler" }),
+    );
+    renderTokens([], { excludedId: 3 });
+
+    await userEvent.type(tokenInput(), "metal");
+
+    expect(
+      await screen.findByRole("option", { name: "Metal Sampler" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Metal Mix" }),
     ).not.toBeInTheDocument();
   });
 

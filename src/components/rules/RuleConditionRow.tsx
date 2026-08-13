@@ -30,7 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { RuleValueInput } from "./RuleValueInput";
 import { describeCondition } from "./describe";
-import { usePlaylistNames } from "./playlistNames";
+import { useRulePlaylists } from "./rulePlaylists";
 
 export interface RowActions {
   onMove: (delta: number) => void;
@@ -66,7 +66,7 @@ export function RuleConditionRow(props: RuleConditionRowProps) {
 }
 
 function ReadOnlyRow({ condition, schema }: ConditionShape) {
-  const { nameOf } = usePlaylistNames();
+  const { nameOf } = useRulePlaylists();
 
   return (
     <li className="text-sm">

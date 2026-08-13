@@ -2,7 +2,7 @@ import type { RuleCondition, RuleFieldSpec, RuleSchema } from "@/api/client";
 import { arityOf, fieldSpec, isRelative } from "@/lib/ruleTree";
 import { msToMinutes } from "@/lib/parse";
 import { booleanLabel } from "./booleanLabels";
-import { playlistLabel } from "./playlistNames";
+import { playlistLabel } from "./rulePlaylists";
 
 export function describeCondition(
   condition: RuleCondition,

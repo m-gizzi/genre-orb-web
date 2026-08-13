@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import type { RuleCondition, RuleGroup, RuleValueType } from "@/api/client";
+import type {
+  RuleCondition,
+  RuleGroup,
+  RuleValue,
+  RuleValueType,
+} from "@/api/client";
 import { ruleSchema as schema } from "@/test/ruleSchema";
 import {
   addNode,
@@ -590,6 +595,12 @@ describe("isValueComplete", () => {
     expect(isValueComplete(null, "none", genre, schema)).toBe(true);
     expect(isValueComplete("metal", "none", genre, schema)).toBe(false);
     expect(isValueComplete([], "none", genre, schema)).toBe(false);
+  });
+
+  it("counts a value the API left out as no value", () => {
+    const absent = undefined as unknown as RuleValue;
+
+    expect(isValueComplete(absent, "none", genre, schema)).toBe(true);
   });
 
   it("requires a list of ids for a playlist reference", () => {
