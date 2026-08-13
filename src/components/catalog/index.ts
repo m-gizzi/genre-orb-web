@@ -1,5 +1,6 @@
 export { ArtistLink, ArtistLinks, AlbumLink, GenreChip } from "./links";
 export { ArtistCard, AlbumCard } from "./cards";
+export { ArtistSources } from "./ArtistSources";
 export { PlaylistSyncSwitch } from "./PlaylistSyncSwitch";
 export { SortControl } from "./SortControl";
 export { DebouncedInput } from "./DebouncedInput";

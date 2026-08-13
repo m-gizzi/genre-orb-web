@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import type { ArtistSummary, AlbumSummary, GenreSource } from "@/api/client";
+import type { ArtistSummary, AlbumSummary } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { describeSources, type GroupedGenre } from "@/lib/genres";
 import { cn } from "@/lib/utils";
@@ -57,12 +57,8 @@ export function AlbumLink({
   );
 }
 
-export function GenreChip({
-  genre,
-}: {
-  genre: Pick<GroupedGenre, "genre_id" | "name"> & { sources?: GenreSource[] };
-}) {
-  const sources = genre.sources ?? [];
+export function GenreChip({ genre }: { genre: GroupedGenre }) {
+  const { sources } = genre;
   const fromUserOnly = sources.length === 1 && sources[0] === "user";
   const corroborated = sources.length > 1;
 
@@ -75,7 +71,9 @@ export function GenreChip({
     >
       {genre.name}
       {corroborated && (
-        <span className="ml-1 text-[0.65rem] tabular-nums opacity-60">{sources.length}</span>
+        <span aria-hidden="true" className="ml-1 text-[0.65rem] tabular-nums opacity-60">
+          {sources.length}
+        </span>
       )}
     </Badge>
   );

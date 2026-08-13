@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
-import type { Track, TrackGenre } from "@/api/client";
+import type { Track, SourcedGenre } from "@/api/client";
 import { renderWithProviders } from "@/test/utils";
 import { TrackTable } from "./TrackTable";
 
-function genre(id: number, name: string): TrackGenre {
+function genre(id: number, name: string): SourcedGenre {
   return { id, genre_id: id, name, source: "spotify", confidence: 1 };
 }
 

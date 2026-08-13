@@ -299,15 +299,13 @@ export interface AlbumSummary {
 
 export type GenreSource = "spotify" | "musicbrainz" | "lastfm" | "user";
 
-export interface TrackGenre {
+export interface SourcedGenre {
   id: number;
   genre_id: number;
   name: string;
   source: GenreSource;
   confidence: number;
 }
-
-export type ArtistGenre = TrackGenre;
 
 export interface Track {
   id: number;
@@ -320,7 +318,7 @@ export interface Track {
   preview_url: string | null;
   album: AlbumSummary | null;
   artists: ArtistSummary[];
-  genres: TrackGenre[];
+  genres: SourcedGenre[];
 }
 
 export interface Artist {
@@ -328,7 +326,7 @@ export interface Artist {
   name: string;
   spotify_id: string;
   image_url: string | null;
-  genres: ArtistGenre[];
+  genres: SourcedGenre[];
   followers: number | null;
   popularity: number | null;
 }
@@ -336,7 +334,7 @@ export interface Artist {
 export type MetadataSourceState = "pending" | "matched" | "unmatched" | "errored";
 
 export interface ArtistMetadataSource {
-  source: GenreSource;
+  source: EnrichmentSource;
   state: MetadataSourceState;
   external_id: string | null;
   external_url: string | null;

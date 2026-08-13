@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { GenreSource, TrackGenre } from "@/api/client";
+import type { GenreSource, SourcedGenre } from "@/api/client";
 import { groupGenres, describeSources } from "./genres";
 
 let nextId = 1;
@@ -9,7 +9,7 @@ function entry(
   name: string,
   source: GenreSource,
   confidence = 1,
-): TrackGenre {
+): SourcedGenre {
   return { id: nextId++, genre_id: genreId, name, source, confidence };
 }
 
@@ -42,6 +42,26 @@ describe("groupGenres", () => {
     ]);
 
     expect(grouped.map((genre) => genre.confidence)).toEqual([0.9]);
+  });
+
+  it("pins a genre you added ahead of anything the providers agreed on", () => {
+    const grouped = groupGenres([
+      entry(1, "metal", "spotify"),
+      entry(1, "metal", "musicbrainz"),
+      entry(1, "metal", "lastfm"),
+      entry(2, "chill", "user"),
+    ]);
+
+    expect(grouped.map((genre) => genre.name)).toEqual(["chill", "metal"]);
+  });
+
+  it("still ranks your own genres against each other by confidence", () => {
+    const grouped = groupGenres([
+      entry(1, "chill", "user", 0.4),
+      entry(2, "focus", "user", 0.9),
+    ]);
+
+    expect(grouped.map((genre) => genre.name)).toEqual(["focus", "chill"]);
   });
 
   it("orders better-corroborated genres first", () => {

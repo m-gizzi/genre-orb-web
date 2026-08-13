@@ -6,6 +6,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlbumCard,
+  ArtistSources,
   EmptyState,
   ErrorState,
   GenreChip,
@@ -82,6 +83,8 @@ export function ArtistDetailPage() {
           )}
         </div>
       </div>
+
+      <ArtistSources sources={data.metadata_sources} />
 
       {data.albums.length > 0 && (
         <section className="mb-8">

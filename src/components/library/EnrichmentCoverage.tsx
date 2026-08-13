@@ -1,18 +1,14 @@
 import { ProgressBar } from "@/components/library/ProgressBar";
+import { SOURCE_LABEL } from "@/lib/genres";
 import {
   ENRICHMENT_SOURCES,
   type EnrichmentCoverage as Coverage,
   type EnrichmentSource,
 } from "@/api/client";
 
-const SOURCE_LABEL: Record<EnrichmentSource, string> = {
-  musicbrainz: "MusicBrainz",
-  lastfm: "Last.fm",
-};
-
 function percentOf(coverage: Coverage): number {
   if (coverage.total === 0) return 0;
-  return ((coverage.fetched + coverage.unmatched) * 100) / coverage.total;
+  return (coverage.fetched * 100) / coverage.total;
 }
 
 function summarize(coverage: Coverage): string {
@@ -20,6 +16,10 @@ function summarize(coverage: Coverage): string {
   if (coverage.unmatched > 0) parts.push(`${coverage.unmatched} not found`);
   if (coverage.errored > 0) parts.push(`${coverage.errored} failed`);
   return parts.join(" · ");
+}
+
+function isUpToDate(coverage: Coverage): boolean {
+  return coverage.total > 0 && coverage.pending === 0 && coverage.errored === 0;
 }
 
 export function EnrichmentCoverage({
@@ -38,7 +38,6 @@ export function EnrichmentCoverage({
       <div className="space-y-3 rounded-lg border bg-card p-4">
         {ENRICHMENT_SOURCES.map((source) => {
           const sourceCoverage = coverage[source];
-          const done = sourceCoverage.total > 0 && sourceCoverage.pending === 0;
 
           return (
             <div key={source}>
@@ -56,7 +55,7 @@ export function EnrichmentCoverage({
                 label={`${SOURCE_LABEL[source]} genre coverage`}
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                {done
+                {isUpToDate(sourceCoverage)
                   ? `Up to date — ${summarize(sourceCoverage)}`
                   : summarize(sourceCoverage)}
               </p>

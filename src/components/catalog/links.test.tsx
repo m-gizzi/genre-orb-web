@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithProviders } from "@/test/utils";
+import type { GroupedGenre } from "@/lib/genres";
 import { ArtistLink, ArtistLinks, AlbumLink, GenreChip } from "./links";
 
 describe("ArtistLink", () => {
@@ -55,9 +56,19 @@ describe("AlbumLink", () => {
 });
 
 describe("GenreChip", () => {
+  function grouped(overrides: Partial<GroupedGenre> = {}): GroupedGenre {
+    return {
+      genre_id: 3,
+      name: "Metal",
+      sources: ["spotify"],
+      confidence: 1,
+      ...overrides,
+    };
+  }
+
   it("links to the genre by genre_id and marks the source", () => {
     renderWithProviders(
-      <GenreChip genre={{ genre_id: 12, name: "Jazz", sources: ["spotify"] }} />
+      <GenreChip genre={grouped({ genre_id: 12, name: "Jazz" })} />
     );
     const link = screen.getByRole("link", { name: "Jazz" });
     expect(link).toHaveAttribute("href", "/genres/12");
@@ -66,7 +77,7 @@ describe("GenreChip", () => {
 
   it("labels a user-added genre", () => {
     renderWithProviders(
-      <GenreChip genre={{ genre_id: 5, name: "Chill", sources: ["user"] }} />
+      <GenreChip genre={grouped({ genre_id: 5, name: "Chill", sources: ["user"] })} />
     );
     expect(screen.getByRole("link", { name: "Chill" })).toHaveAttribute(
       "title",
@@ -76,11 +87,9 @@ describe("GenreChip", () => {
 
   it("names every source that agreed on the genre", () => {
     renderWithProviders(
-      <GenreChip
-        genre={{ genre_id: 3, name: "Metal", sources: ["spotify", "musicbrainz"] }}
-      />
+      <GenreChip genre={grouped({ sources: ["spotify", "musicbrainz"] })} />
     );
-    expect(screen.getByRole("link", { name: /Metal/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Metal" })).toHaveAttribute(
       "title",
       "From Spotify and MusicBrainz"
     );
@@ -88,17 +97,23 @@ describe("GenreChip", () => {
 
   it("shows how many sources agreed, so corroboration reads as a signal", () => {
     renderWithProviders(
-      <GenreChip
-        genre={{ genre_id: 3, name: "Metal", sources: ["spotify", "musicbrainz", "lastfm"] }}
-      />
+      <GenreChip genre={grouped({ sources: ["spotify", "musicbrainz", "lastfm"] })} />
     );
-    expect(screen.getByRole("link", { name: /Metal/ })).toHaveTextContent("3");
+    expect(screen.getByRole("link", { name: "Metal" })).toHaveTextContent("3");
+  });
+
+  it("keeps the count out of the link's accessible name", () => {
+    renderWithProviders(
+      <GenreChip genre={grouped({ sources: ["spotify", "musicbrainz", "lastfm"] })} />
+    );
+    expect(
+      screen.queryByRole("link", { name: "Metal 3" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Metal" })).toBeInTheDocument();
   });
 
   it("shows no count for a genre only one source claimed", () => {
-    renderWithProviders(
-      <GenreChip genre={{ genre_id: 3, name: "Metal", sources: ["spotify"] }} />
-    );
+    renderWithProviders(<GenreChip genre={grouped()} />);
     expect(screen.getByRole("link", { name: "Metal" })).toHaveTextContent(/^Metal$/);
   });
 });
