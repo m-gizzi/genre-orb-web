@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/library/ProgressBar";
 import { useSyncStatus } from "@/contexts/SyncStatusContext";
 import { useLikedPlaylist, usePlaylistsPage } from "@/hooks/usePlaylists";
+import { formatDateTime } from "@/lib/format";
 
 interface SyncControlsProps {
   enabled: boolean;
@@ -59,6 +60,13 @@ export function SyncControls({ enabled }: SyncControlsProps) {
         </div>
         <p className="text-sm text-muted-foreground">
           Choose which playlists to sync on the Playlists page, then sync here.
+          {library.nextScheduledRunAt && (
+            <>
+              {" "}
+              Everything syncs automatically each day — next run{" "}
+              {formatDateTime(library.nextScheduledRunAt)}.
+            </>
+          )}
         </p>
       </section>
 

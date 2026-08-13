@@ -18,6 +18,7 @@ import { SYNC_NOTICE_TIMEOUT_MS } from "@/lib/config";
 
 interface LibrarySyncState {
   visibleSession: SyncSession | null;
+  nextScheduledRunAt: string | null;
   hasActiveSync: boolean;
   isError: boolean;
   start: () => void;
@@ -81,6 +82,11 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
     artistSync.currentSession,
     SYNC_NOTICE_TIMEOUT_MS
   );
+  const manualActivePushes = useMemo(
+    () => pushStatus.activePushes.filter((push) => push.trigger === "manual"),
+    [pushStatus.activePushes]
+  );
+
   const [visibleFinishedPushes, dismissFinishedPush] = useVisiblePushes(
     pushStatus.recentPushes,
     pushStatus.activePushes,
@@ -90,6 +96,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
   const library = useMemo<LibrarySyncState>(
     () => ({
       visibleSession: visibleLibrarySession,
+      nextScheduledRunAt: librarySync.nextScheduledRunAt,
       hasActiveSync: librarySync.hasActiveSync,
       isError: librarySync.isError,
       start: librarySync.sync,
@@ -100,6 +107,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
     }),
     [
       visibleLibrarySession,
+      librarySync.nextScheduledRunAt,
       librarySync.hasActiveSync,
       librarySync.isError,
       librarySync.sync,
@@ -143,7 +151,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
 
   const push = useMemo<PushState>(
     () => ({
-      activePushes: pushStatus.activePushes,
+      activePushes: manualActivePushes,
       finishedPushes: visibleFinishedPushes,
       hasActivePush: pushStatus.hasActivePush,
       isError: pushStatus.isError,
@@ -153,7 +161,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
       dismissFinished: dismissFinishedPush,
     }),
     [
-      pushStatus.activePushes,
+      manualActivePushes,
       visibleFinishedPushes,
       pushStatus.hasActivePush,
       pushStatus.isError,

@@ -20,6 +20,7 @@ const EMPTY_STATUS: PushStatus = {
   recent_pushes: [],
   rate_limited: false,
   rate_limit_resume_at: null,
+  needs_reauth: false,
 };
 
 export function usePushStatus({ enabled, onMessage }: UsePushStatusOptions) {

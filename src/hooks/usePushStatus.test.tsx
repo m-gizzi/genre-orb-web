@@ -25,12 +25,14 @@ const idleStatus: PushStatus = {
   recent_pushes: [],
   rate_limited: false,
   rate_limit_resume_at: null,
+  needs_reauth: false,
 };
 
 function pushSession(overrides: Partial<PushSession> = {}): PushSession {
   return {
     id: 1,
     status: "running",
+    trigger: "manual",
     progress: { total: 2, completed: 0, percent: 0 },
     error_message: null,
     started_at: null,

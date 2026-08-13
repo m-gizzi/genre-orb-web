@@ -27,11 +27,14 @@ const inactiveStatus: LibraryStatus = {
   rate_limit_resume_at: null,
   playlists_metadata_fetched_at: null,
   playlists_metadata_error: null,
+  needs_reauth: false,
+  next_scheduled_run_at: "2026-08-14T03:00:00Z",
 };
 
 const runningSession: SyncSession = {
   id: 1,
   status: "running",
+  trigger: "manual",
   progress: { total: 2, completed: 0, skipped: 0, failed: 0, percent: 0 },
   error_message: null,
   started_at: null,

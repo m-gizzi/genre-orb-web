@@ -20,6 +20,8 @@ const EMPTY_STATUS: LibraryStatus = {
   rate_limit_resume_at: null,
   playlists_metadata_fetched_at: null,
   playlists_metadata_error: null,
+  needs_reauth: false,
+  next_scheduled_run_at: "",
 };
 
 function onSyncFinished(queryClient: QueryClient) {
@@ -113,6 +115,7 @@ export function useLibrarySync({ enabled, onMessage }: UseLibrarySyncOptions) {
     refetch: statusQuery.refetch,
     hasActiveSync,
     currentSession: statusQuery.data?.current_session ?? null,
+    nextScheduledRunAt: statusQuery.data?.next_scheduled_run_at ?? null,
     sync: syncMutation.mutate,
     isSyncing: syncMutation.isPending,
     fetchPlaylists: fetchPlaylistsMutation.mutate,

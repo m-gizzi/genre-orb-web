@@ -22,6 +22,7 @@ const EMPTY_STATUS: ArtistSyncStatus = {
   rate_limit_resume_at: null,
   artists_total: 0,
   artists_synced: 0,
+  needs_reauth: false,
 };
 
 export function useArtistSync({ enabled, onMessage }: UseArtistSyncOptions) {

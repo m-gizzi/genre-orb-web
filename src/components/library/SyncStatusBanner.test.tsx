@@ -7,6 +7,7 @@ function makeSession(overrides: Partial<SyncSession> = {}): SyncSession {
   return {
     id: 1,
     status: "running",
+    trigger: "manual",
     progress: { total: 3, completed: 1, skipped: 0, failed: 0, percent: 33 },
     error_message: null,
     started_at: null,

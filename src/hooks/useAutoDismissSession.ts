@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import type { SyncSessionStatus } from "@/api/client";
+import type { SessionStatus } from "@/api/client";
 import { isSyncActive, shouldAutoDismiss } from "@/components/library/statusStyles";
 
 type DismissableSession = {
   id: number;
-  status: SyncSessionStatus;
+  status: SessionStatus;
   completed_at: string | null;
 };
 

@@ -118,6 +118,7 @@ export interface User {
   id: number;
   email: string;
   spotify_connected: boolean;
+  spotify_needs_reauth: boolean;
   spotify_profile?: SpotifyProfile;
 }
 
@@ -427,6 +428,8 @@ export type SyncSessionStatus =
   | "completed_with_errors"
   | "failed";
 
+export type SessionTrigger = "scheduled" | "manual";
+
 export type SyncPlaylistStatus =
   | "pending"
   | "fetching_pages"
@@ -456,6 +459,7 @@ export interface SyncSessionPlaylist {
 export interface SyncSession {
   id: number;
   status: SyncSessionStatus;
+  trigger: SessionTrigger;
   progress: LibrarySyncProgress;
   error_message: string | null;
   started_at: string | null;
@@ -470,11 +474,14 @@ export interface LibraryStatus {
   rate_limit_resume_at: string | null;
   playlists_metadata_fetched_at: string | null;
   playlists_metadata_error: string | null;
+  needs_reauth: boolean;
+  next_scheduled_run_at: string;
 }
 
 export interface ArtistMetadataSession {
   id: number;
   status: SyncSessionStatus;
+  trigger: SessionTrigger;
   progress: SyncProgress;
   error_message: string | null;
   started_at: string | null;
@@ -488,15 +495,24 @@ export interface ArtistSyncStatus {
   rate_limit_resume_at: string | null;
   artists_total: number;
   artists_synced: number;
+  needs_reauth: boolean;
 }
 
-export type PushSessionStatus = "pending" | "running" | "completed" | "failed";
+export type PushSessionStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped";
+
+export type SessionStatus = SyncSessionStatus | PushSessionStatus;
 
 export type PushStrategy = "diff" | "replace";
 
 export interface PushSession {
   id: number;
   status: PushSessionStatus;
+  trigger: SessionTrigger;
   progress: SyncProgress;
   error_message: string | null;
   started_at: string | null;
@@ -515,6 +531,7 @@ export interface PushStatus {
   recent_pushes: PushSession[];
   rate_limited: boolean;
   rate_limit_resume_at: string | null;
+  needs_reauth: boolean;
 }
 
 export const authApi = {

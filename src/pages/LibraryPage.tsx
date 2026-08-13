@@ -54,6 +54,7 @@ export function LibraryPage() {
             artistSession={artist.visibleSession}
             activePushes={push.activePushes}
             finishedPushes={push.finishedPushes}
+            needsReauth={!!user?.spotify_needs_reauth}
             onDismissLibrary={library.dismissSession}
             onDismissArtist={artist.dismissSession}
             onDismissPush={push.dismissFinished}
