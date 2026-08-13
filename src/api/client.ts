@@ -153,6 +153,8 @@ export interface PlaylistSummary {
   id: number;
   name: string;
   spotify_id: string | null;
+  sync_enabled: boolean;
+  track_count: number;
   is_liked_songs: boolean;
 }
 
@@ -179,8 +181,14 @@ export interface RuleGroup {
   not?: boolean;
 }
 
-export type RuleArity = "one" | "two" | "many" | "relative";
-export type RuleValueType = "text" | "number" | "duration" | "boolean" | "date";
+export type RuleArity = "one" | "two" | "many" | "relative" | "none";
+export type RuleValueType =
+  | "text"
+  | "number"
+  | "duration"
+  | "boolean"
+  | "date"
+  | "playlist";
 
 export interface RuleOperatorSpec {
   key: string;
@@ -202,7 +210,7 @@ export interface RuleFieldSpec {
   operators: RuleOperatorSpec[];
 }
 
-export type RuleSuggestSource = "genres" | "artists" | "albums";
+export type RuleSuggestSource = "genres" | "artists" | "albums" | "playlists";
 
 export interface RuleSchema {
   max_depth: number;
@@ -230,6 +238,7 @@ export interface SmartPlaylist {
 
 export interface SmartPlaylistDetail extends SmartPlaylist {
   source_playlists: PlaylistSummary[];
+  rule_playlists: PlaylistSummary[];
 }
 
 export interface NewPlaylistAttributes {

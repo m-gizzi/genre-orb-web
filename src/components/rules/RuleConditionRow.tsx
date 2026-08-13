@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { RuleValueInput } from "./RuleValueInput";
 import { describeCondition } from "./describe";
+import { useRulePlaylists } from "./rulePlaylists";
 
 export interface RowActions {
   onMove: (delta: number) => void;
@@ -59,16 +60,20 @@ export type RuleConditionRowProps = ConditionShape &
   );
 
 export function RuleConditionRow(props: RuleConditionRowProps) {
-  if (!props.editable) {
-    return (
-      <li className="text-sm">
-        <span className="text-muted-foreground">•</span>{" "}
-        {describeCondition(props.condition, props.schema)}
-      </li>
-    );
-  }
+  if (!props.editable) return <ReadOnlyRow {...props} />;
 
   return <EditableRow {...props} />;
+}
+
+function ReadOnlyRow({ condition, schema }: ConditionShape) {
+  const { nameOf } = useRulePlaylists();
+
+  return (
+    <li className="text-sm">
+      <span className="text-muted-foreground">•</span>{" "}
+      {describeCondition(condition, schema, nameOf)}
+    </li>
+  );
 }
 
 function EditableRow({

@@ -2,10 +2,12 @@ import type { RuleCondition, RuleFieldSpec, RuleSchema } from "@/api/client";
 import { arityOf, fieldSpec, isRelative } from "@/lib/ruleTree";
 import { msToMinutes } from "@/lib/parse";
 import { booleanLabel } from "./booleanLabels";
+import { playlistLabel } from "./rulePlaylists";
 
 export function describeCondition(
   condition: RuleCondition,
   schema: RuleSchema,
+  nameOf: NameLookup = () => undefined,
 ): string {
   const field = fieldSpec(schema, condition.field);
   if (!field) return `Unknown field “${condition.field}”`;
@@ -13,16 +15,27 @@ export function describeCondition(
   const operator = field.operators.find((op) => op.key === condition.operator);
   const label = operator?.label ?? condition.operator;
 
-  return `${field.label} ${label} ${describeValue(condition, schema)}`.trim();
+  return `${field.label} ${label} ${describeValue(condition, schema, nameOf)}`.trim();
 }
 
-function describeValue(condition: RuleCondition, schema: RuleSchema): string {
+export type NameLookup = (id: number) => string | undefined;
+
+function describeValue(
+  condition: RuleCondition,
+  schema: RuleSchema,
+  nameOf: NameLookup,
+): string {
   const field = fieldSpec(schema, condition.field);
   const { value } = condition;
 
   switch (arityOf(schema, condition.operator)) {
+    case "none":
+      return "";
     case "many":
-      return Array.isArray(value) ? value.map(quote).join(", ") : "—";
+      if (!Array.isArray(value)) return "—";
+      return field?.value_type === "playlist"
+        ? value.map((id) => quote(playlistLabel(Number(id), nameOf(Number(id))))).join(", ")
+        : value.map(quote).join(", ");
     case "two":
       return Array.isArray(value) && value.length === 2
         ? `${scalar(value[0], field)} and ${scalar(value[1], field)}`

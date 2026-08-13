@@ -45,6 +45,7 @@ function detail(rules: RuleGroup): SmartPlaylistDetail {
     last_pushed_at: null,
     target_playlist: { id: 3, name: "Metal Mix" } as Playlist,
     source_playlists: [],
+    rule_playlists: [],
   } as SmartPlaylistDetail;
 }
 

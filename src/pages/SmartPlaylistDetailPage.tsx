@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import {
   apiErrorMessage,
+  type PlaylistSummary,
   type RuleGroup,
   type SmartPlaylistDetail,
 } from "@/api/client";
@@ -32,7 +33,11 @@ import { HintedSwitch } from "@/components/ui/hinted-switch";
 import { ErrorState } from "@/components/catalog";
 import { DeleteSmartPlaylistDialog } from "@/components/smartPlaylists/DeleteSmartPlaylistDialog";
 import { SourcePlaylistPicker } from "@/components/smartPlaylists/SourcePlaylistPicker";
-import { RuleGroupCard, RuleMatchesPanel } from "@/components/rules";
+import {
+  RulePlaylistsProvider,
+  RuleGroupCard,
+  RuleMatchesPanel,
+} from "@/components/rules";
 import { countRules, toDraft } from "@/lib/ruleTree";
 import { formatDate, formatNumber } from "@/lib/format";
 
@@ -234,7 +239,10 @@ function SmartPlaylistDetailView({
             </Button>
           </div>
 
-          <RuleSummary rules={smartPlaylist.rules} />
+          <RuleSummary
+            rules={smartPlaylist.rules}
+            rulePlaylists={smartPlaylist.rule_playlists}
+          />
 
           <EvaluationRow smartPlaylist={smartPlaylist} matches={matches} />
         </Card>
@@ -260,7 +268,13 @@ function SmartPlaylistDetailView({
   );
 }
 
-function RuleSummary({ rules }: { rules: RuleGroup }) {
+function RuleSummary({
+  rules,
+  rulePlaylists,
+}: {
+  rules: RuleGroup;
+  rulePlaylists: PlaylistSummary[];
+}) {
   const schema = useRuleSchema();
   const tree = useMemo(() => toDraft(rules), [rules]);
 
@@ -281,13 +295,15 @@ function RuleSummary({ rules }: { rules: RuleGroup }) {
   }
 
   return (
-    <RuleGroupCard
-      group={tree}
-      root={tree}
-      schema={schema.data}
-      path={[]}
-      editable={false}
-    />
+    <RulePlaylistsProvider known={rulePlaylists}>
+      <RuleGroupCard
+        group={tree}
+        root={tree}
+        schema={schema.data}
+        path={[]}
+        editable={false}
+      />
+    </RulePlaylistsProvider>
   );
 }
 

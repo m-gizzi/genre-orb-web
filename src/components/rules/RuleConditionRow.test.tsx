@@ -264,6 +264,33 @@ describe("RuleConditionRow", () => {
     expect(actions.onRemove).toHaveBeenCalled();
   });
 
+  it("shows no value control for a presence operator, and counts it finished", async () => {
+    const { onChange } = renderRow({
+      field: "genre",
+      operator: "in",
+      value: ["metal"],
+    });
+
+    await chooseFrom("Operator for rule 1", "is not set");
+
+    expect(onChange).toHaveBeenCalledWith({
+      field: "genre",
+      operator: "is_not_set",
+      value: null,
+    });
+    expect(screen.queryByRole("combobox", { name: "Genre values" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Needs a value")).not.toBeInTheDocument();
+  });
+
+  it("picks playlists by name for a playlist rule", async () => {
+    renderRow({ field: "playlist", operator: "not_in", value: [] });
+
+    expect(
+      screen.getByRole("combobox", { name: "Playlist values" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Needs a value")).toBeInTheDocument();
+  });
+
   it("reads as a sentence with no controls when read-only", () => {
     renderRow(
       { field: "genre", operator: "contains", value: "metal" },

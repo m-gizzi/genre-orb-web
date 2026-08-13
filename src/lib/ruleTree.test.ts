@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import type { RuleCondition, RuleGroup, RuleValueType } from "@/api/client";
+import type {
+  RuleCondition,
+  RuleGroup,
+  RuleValue,
+  RuleValueType,
+} from "@/api/client";
 import { ruleSchema as schema } from "@/test/ruleSchema";
 import {
   addNode,
@@ -528,6 +533,14 @@ describe("fitsField", () => {
     expect(fitsField("2024-02-31", field("date_added"))).toBe(false);
   });
 
+  it("requires a positive whole number for a playlist reference", () => {
+    expect(fitsField(12, field("playlist"))).toBe(true);
+    expect(fitsField(0, field("playlist"))).toBe(false);
+    expect(fitsField(-1, field("playlist"))).toBe(false);
+    expect(fitsField(1.5, field("playlist"))).toBe(false);
+    expect(fitsField("12", field("playlist"))).toBe(false);
+  });
+
   it("fits nothing to a value type this build cannot render", () => {
     const exotic = {
       ...field("genre"),
@@ -576,6 +589,26 @@ describe("isValueComplete", () => {
     expect(isValueComplete({ count: 0, unit: "days" }, "relative", dateAdded, schema)).toBe(false);
     expect(isValueComplete({ count: 1.5, unit: "days" }, "relative", dateAdded, schema)).toBe(false);
     expect(isValueComplete(null, "relative", dateAdded, schema)).toBe(false);
+  });
+
+  it("requires no value at all for none", () => {
+    expect(isValueComplete(null, "none", genre, schema)).toBe(true);
+    expect(isValueComplete("metal", "none", genre, schema)).toBe(false);
+    expect(isValueComplete([], "none", genre, schema)).toBe(false);
+  });
+
+  it("counts a value the API left out as no value", () => {
+    const absent = undefined as unknown as RuleValue;
+
+    expect(isValueComplete(absent, "none", genre, schema)).toBe(true);
+  });
+
+  it("requires a list of ids for a playlist reference", () => {
+    const playlist = field("playlist");
+
+    expect(isValueComplete([4, 5], "many", playlist, schema)).toBe(true);
+    expect(isValueComplete([], "many", playlist, schema)).toBe(false);
+    expect(isValueComplete(["4"], "many", playlist, schema)).toBe(false);
   });
 });
 
@@ -673,6 +706,11 @@ describe("coerceValue", () => {
 
   it("clears a relative value that cannot become a scalar", () => {
     expect(coerceValue({ count: 30, unit: "days" }, "relative", "one")).toBeNull();
+  });
+
+  it("clears the value on the way into a presence check, and back out again", () => {
+    expect(coerceValue(["metal"], "many", "none")).toBeNull();
+    expect(coerceValue(null, "none", "many")).toBeNull();
   });
 });
 

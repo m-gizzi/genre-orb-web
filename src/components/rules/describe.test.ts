@@ -97,6 +97,39 @@ describe("describeCondition", () => {
     ).toBe("Local file is No");
   });
 
+  it("reads a presence check as the operator alone", () => {
+    expect(
+      describeCondition(
+        { field: "genre", operator: "is_not_set", value: null },
+        ruleSchema,
+      ),
+    ).toBe("Genre is not set");
+  });
+
+  it("names the playlists a reference rule points at", () => {
+    const names = new Map([
+      [4, "Road Trip"],
+      [5, "Rainy Day"],
+    ]);
+
+    expect(
+      describeCondition(
+        { field: "playlist", operator: "not_in", value: [4, 5] },
+        ruleSchema,
+        (id) => names.get(id),
+      ),
+    ).toBe("Playlist is none of “Road Trip”, “Rainy Day”");
+  });
+
+  it("falls back to the id for a playlist it cannot name", () => {
+    expect(
+      describeCondition(
+        { field: "playlist", operator: "in", value: [12] },
+        ruleSchema,
+      ),
+    ).toBe("Playlist is any of “Playlist #12”");
+  });
+
   it("marks a value that is not there yet", () => {
     expect(
       describeCondition(

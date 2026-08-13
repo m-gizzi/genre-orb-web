@@ -6,7 +6,7 @@ export const ruleSchema: RuleSchema = {
   max_depth: 5,
   max_nodes: 100,
   max_string_length: 200,
-  max_list_size: 30,
+  max_list_size: 50,
   match_types: ["all", "any"],
   relative_units: ["days", "weeks", "months", "years"],
   operators: {
@@ -22,6 +22,8 @@ export const ruleSchema: RuleSchema = {
     not_in: { arity: "many" },
     in_the_last: { arity: "relative" },
     not_in_the_last: { arity: "relative" },
+    is_set: { arity: "none" },
+    is_not_set: { arity: "none" },
   },
   fields: [
     {
@@ -36,6 +38,8 @@ export const ruleSchema: RuleSchema = {
         { key: "contains", label: "contains" },
         { key: "in", label: "is any of" },
         { key: "not_in", label: "is none of" },
+        { key: "is_set", label: "is set" },
+        { key: "is_not_set", label: "is not set" },
       ],
     },
     {
@@ -50,6 +54,8 @@ export const ruleSchema: RuleSchema = {
         { key: "contains", label: "contains" },
         { key: "in", label: "is any of" },
         { key: "not_in", label: "is none of" },
+        { key: "is_set", label: "is set" },
+        { key: "is_not_set", label: "is not set" },
       ],
     },
     {
@@ -139,6 +145,17 @@ export const ruleSchema: RuleSchema = {
         { key: "greater_than", label: "is after" },
         { key: "less_than", label: "is before" },
         { key: "between", label: "is between" },
+      ],
+    },
+    {
+      key: "playlist",
+      label: "Playlist",
+      value_type: "playlist",
+      suggest: "playlists",
+      constraints: {},
+      operators: [
+        { key: "in", label: "is any of" },
+        { key: "not_in", label: "is none of" },
       ],
     },
   ],
