@@ -145,7 +145,14 @@ describe("SourcePlaylistPicker", () => {
         selectedIds={[7]}
         onChange={vi.fn()}
         initialSelected={[
-          { id: 7, name: "Saved Source", spotify_id: "s7", is_liked_songs: false },
+          {
+            id: 7,
+            name: "Saved Source",
+            spotify_id: "s7",
+            sync_enabled: true,
+            track_count: 9,
+            is_liked_songs: false,
+          },
         ]}
       />,
     );

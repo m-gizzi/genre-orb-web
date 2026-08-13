@@ -229,7 +229,14 @@ describe("SmartPlaylistDetailPage", () => {
         is_ready: true,
         rules: excludes,
         rule_playlists: [
-          { id: 12, name: "Already Heard", spotify_id: "s12", is_liked_songs: false },
+          {
+            id: 12,
+            name: "Already Heard",
+            spotify_id: "s12",
+            sync_enabled: true,
+            track_count: 40,
+            is_liked_songs: false,
+          },
         ],
       }),
     );

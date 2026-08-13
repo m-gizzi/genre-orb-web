@@ -153,6 +153,8 @@ export interface PlaylistSummary {
   id: number;
   name: string;
   spotify_id: string | null;
+  sync_enabled: boolean;
+  track_count: number;
   is_liked_songs: boolean;
 }
 

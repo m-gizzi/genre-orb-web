@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { XIcon } from "lucide-react";
+import { AlertTriangleIcon, XIcon } from "lucide-react";
 import { useRuleSuggestions } from "@/hooks/useRuleSuggestions";
 import { Badge } from "@/components/ui/badge";
 import { SuggestCombobox } from "@/components/catalog/SuggestCombobox";
@@ -24,8 +24,9 @@ export function PlaylistTokenInput({
 }: PlaylistTokenInputProps) {
   const [query, setQuery] = useState("");
   const suggestions = useRuleSuggestions("playlists", query);
-  const { nameOf, remember } = usePlaylistNames();
+  const { nameOf, hasNothingToMatch, remember } = usePlaylistNames();
   const full = values.length >= maxValues;
+  const anyEmpty = values.some((id) => hasNothingToMatch(id));
 
   function add(id: number, name: string) {
     if (full || values.includes(id)) return;
@@ -66,9 +67,21 @@ export function PlaylistTokenInput({
         <ul className="flex flex-wrap gap-1">
           {values.map((id, index) => {
             const name = playlistLabel(id, nameOf(id));
+            const empty = hasNothingToMatch(id);
             return (
               <li key={id}>
                 <Badge variant="secondary" className="gap-1 px-2">
+                  {empty && (
+                    <>
+                      <AlertTriangleIcon
+                        aria-hidden
+                        className="size-3 shrink-0 text-muted-foreground"
+                      />
+                      <span className="sr-only">
+                        {name} has no synced tracks, so it changes nothing here.
+                      </span>
+                    </>
+                  )}
                   <span className="max-w-[12rem] truncate">{name}</span>
                   <button
                     type="button"
@@ -83,6 +96,11 @@ export function PlaylistTokenInput({
             );
           })}
         </ul>
+      )}
+      {anyEmpty && (
+        <p className="text-xs text-muted-foreground">
+          Marked playlists have no synced tracks yet, so they change nothing here.
+        </p>
       )}
     </div>
   );

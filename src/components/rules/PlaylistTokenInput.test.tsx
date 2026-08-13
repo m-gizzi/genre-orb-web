@@ -29,8 +29,20 @@ function page(names: Record<number, string>): ApiCollection<Playlist> {
   };
 }
 
-function summary(id: number, name: string): PlaylistSummary {
-  return { id, name, spotify_id: `s${id}`, is_liked_songs: false };
+function summary(
+  id: number,
+  name: string,
+  overrides: Partial<PlaylistSummary> = {},
+): PlaylistSummary {
+  return {
+    id,
+    name,
+    spotify_id: `s${id}`,
+    sync_enabled: true,
+    track_count: 12,
+    is_liked_songs: false,
+    ...overrides,
+  };
 }
 
 afterEach(() => vi.clearAllMocks());
@@ -98,6 +110,38 @@ describe("PlaylistTokenInput", () => {
     renderTokens([99]);
 
     expect(screen.getByText("Playlist #99")).toBeInTheDocument();
+  });
+
+  it("marks a reference that has nothing synced to match on", () => {
+    mockedPlaylists.paginated.mockResolvedValue(page({}));
+    renderTokens([4], {
+      known: [summary(4, "Never Synced", { sync_enabled: false, track_count: 0 })],
+    });
+
+    expect(
+      screen.getByText(/Never Synced has no synced tracks/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Marked playlists have no synced tracks yet/),
+    ).toBeInTheDocument();
+  });
+
+  it("says nothing about a reference that holds tracks", () => {
+    mockedPlaylists.paginated.mockResolvedValue(page({}));
+    renderTokens([4], { known: [summary(4, "Already Heard")] });
+
+    expect(
+      screen.queryByText(/Marked playlists have no synced tracks yet/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says nothing about a reference it knows nothing about yet", () => {
+    mockedPlaylists.paginated.mockResolvedValue(page({}));
+    renderTokens([99]);
+
+    expect(
+      screen.queryByText(/Marked playlists have no synced tracks yet/),
+    ).not.toBeInTheDocument();
   });
 
   it("will not add the same playlist twice", async () => {

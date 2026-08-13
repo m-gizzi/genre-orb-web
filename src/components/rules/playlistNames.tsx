@@ -3,6 +3,7 @@ import type { PlaylistSummary } from "@/api/client";
 
 interface PlaylistNames {
   nameOf: (id: number) => string | undefined;
+  hasNothingToMatch: (id: number) => boolean;
   remember: (id: number, name: string) => void;
 }
 
@@ -33,7 +34,15 @@ export function PlaylistNamesProvider({
     for (const playlist of known) {
       names.set(playlist.id, playlist.name);
     }
-    return { nameOf: (id: number) => names.get(id), remember };
+
+    const empty = new Set(
+      known.filter(({ track_count }) => track_count === 0).map(({ id }) => id),
+    );
+    return {
+      nameOf: (id: number) => names.get(id),
+      hasNothingToMatch: (id: number) => empty.has(id),
+      remember,
+    };
   }, [known, learned, remember]);
 
   return (
@@ -43,7 +52,11 @@ export function PlaylistNamesProvider({
   );
 }
 
-const NO_NAMES: PlaylistNames = { nameOf: () => undefined, remember: () => {} };
+const NO_NAMES: PlaylistNames = {
+  nameOf: () => undefined,
+  hasNothingToMatch: () => false,
+  remember: () => {},
+};
 
 export function usePlaylistNames(): PlaylistNames {
   return useContext(PlaylistNamesContext) ?? NO_NAMES;
