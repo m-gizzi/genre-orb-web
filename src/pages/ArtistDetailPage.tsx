@@ -9,14 +9,13 @@ import {
   ArtistSources,
   EmptyState,
   ErrorState,
-  GenreChip,
   Pagination,
   QueryState,
   TableSkeleton,
   TrackTable,
 } from "@/components/catalog";
+import { GenreEditor } from "@/components/genres/GenreEditor";
 import { formatNumber } from "@/lib/format";
-import { groupGenres } from "@/lib/genres";
 
 export function ArtistDetailPage() {
   const { id } = useParams();
@@ -51,7 +50,6 @@ export function ArtistDetailPage() {
   }
 
   const data = artist.data;
-  const groupedGenres = groupGenres(data.genres);
   const meta = [
     data.followers != null && `${formatNumber(data.followers)} followers`,
     data.popularity != null && `Popularity ${data.popularity}`,
@@ -74,15 +72,18 @@ export function ArtistDetailPage() {
         <div>
           <h1 className="font-heading text-2xl font-semibold">{data.name}</h1>
           {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
-          {groupedGenres.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {groupedGenres.map((genre) => (
-                <GenreChip key={genre.genre_id} genre={genre} />
-              ))}
-            </div>
-          )}
         </div>
       </div>
+
+      <section className="mb-8">
+        <h2 className="mb-2 font-heading text-lg font-medium">Genres</h2>
+        <GenreEditor
+          subject="artist"
+          subjectId={artistId}
+          genres={data.genres}
+          emptyMessage="No genres yet — enrichment fills these in over time, or add one below."
+        />
+      </section>
 
       <ArtistSources sources={data.metadata_sources} />
 

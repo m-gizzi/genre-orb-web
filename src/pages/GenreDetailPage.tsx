@@ -4,6 +4,7 @@ import { useGenre } from "@/hooks/useGenres";
 import { useTracks } from "@/hooks/useTracks";
 import { useArtists } from "@/hooks/useArtists";
 import { useAlbums } from "@/hooks/useAlbums";
+import { useToggleBlockedGenre } from "@/hooks/useGenreCuration";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +36,7 @@ export function GenreDetailPage() {
 
   const enabled = Number.isFinite(genreId);
   const genre = useGenre(genreId);
+  const blocked = useToggleBlockedGenre();
   const tracks = useTracks(
     { genre: String(genreId), per_page: 10, sort: "popularity", order: "desc" },
     enabled
@@ -81,7 +83,20 @@ export function GenreDetailPage() {
       ) : (
         <PageHeader
           title={genre.data.name}
-          description="Artists, albums, and tracks tagged with this genre."
+          description={
+            genre.data.blocked
+              ? "Blocked — hidden from your library and ignored by smart playlist rules."
+              : "Artists, albums, and tracks tagged with this genre."
+          }
+          actions={
+            <Button
+              variant={genre.data.blocked ? "default" : "outline"}
+              size="sm"
+              onClick={() => blocked.toggle(genreId, !genre.data.blocked)}
+            >
+              {genre.data.blocked ? "Unblock genre" : "Block genre"}
+            </Button>
+          }
         />
       )}
 

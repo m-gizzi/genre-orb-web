@@ -5,7 +5,7 @@ import { renderWithProviders } from "@/test/utils";
 import { TrackTable } from "./TrackTable";
 
 function genre(id: number, name: string): SourcedGenre {
-  return { id, genre_id: id, name, source: "spotify", confidence: 1 };
+  return { genre_id: id, name, source: "spotify", confidence: 1 };
 }
 
 function makeTrack(overrides: Partial<Track> = {}): Track {

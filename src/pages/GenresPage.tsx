@@ -7,9 +7,13 @@ import {
 } from "@/lib/catalogFilterParams";
 import { GENRE_PER_PAGE_OPTIONS } from "@/lib/config";
 import type { GenreSort } from "@/lib/sorts";
+import { useToggleBlockedGenre } from "@/hooks/useGenreCuration";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { GenrePreferencesPanel } from "@/components/genres/GenrePreferencesPanel";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
   DebouncedSearchInput,
   EmptyState,
@@ -30,6 +34,7 @@ export function GenresPage() {
   );
 
   const query = useGenres(filters);
+  const blocked = useToggleBlockedGenre();
   const genres = query.data?.data ?? [];
 
   return (
@@ -55,6 +60,18 @@ export function GenresPage() {
         }
       />
 
+      <GenrePreferencesPanel />
+
+      <label className="my-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <Switch
+          checked={filters.include_blocked ?? false}
+          onCheckedChange={(checked: boolean) =>
+            applyPatch({ include_blocked: checked || undefined, page: 1 })
+          }
+        />
+        Show blocked genres
+      </label>
+
       <QueryState
         query={query}
         skeleton={<Skeleton className="h-40 w-full" />}
@@ -66,10 +83,22 @@ export function GenresPage() {
             <Badge
               key={genre.id}
               variant="outline"
-              className="h-7 px-3 text-sm"
-              render={<Link to={`/genres/${genre.id}`} />}
+              className={cn(
+                "h-7 gap-1.5 px-3 text-sm",
+                genre.blocked && "opacity-50",
+              )}
             >
-              {genre.name}
+              <Link to={`/genres/${genre.id}`} className="hover:underline">
+                {genre.name}
+              </Link>
+              <button
+                type="button"
+                aria-label={`${genre.blocked ? "Unblock" : "Block"} ${genre.name}`}
+                onClick={() => blocked.toggle(genre.id, !genre.blocked)}
+                className="text-xs opacity-70 hover:opacity-100"
+              >
+                {genre.blocked ? "Unblock" : "Block"}
+              </button>
             </Badge>
           ))}
         </div>

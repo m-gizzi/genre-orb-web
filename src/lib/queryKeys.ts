@@ -5,6 +5,7 @@ import type {
   PlaylistListParams,
   CatalogListParams,
   AlbumListParams,
+  GenreListParams,
 } from "@/api/client";
 
 const roots = {
@@ -26,6 +27,7 @@ const roots = {
   album: "album",
   genres: "genres",
   genre: "genre",
+  genrePreferences: "genrePreferences",
 } as const;
 
 export const CATALOG_QUERY_ROOTS: readonly string[] = [
@@ -80,6 +82,8 @@ export const queryKeys = {
   albums: (params: AlbumListParams = {}) => [roots.albums, params] as const,
   album: (id: number) => [roots.album, id] as const,
 
-  genres: (params: SearchListParams = {}) => [roots.genres, params] as const,
+  genres: (params: GenreListParams = {}) => [roots.genres, params] as const,
   genre: (id: number) => [roots.genre, id] as const,
+
+  genrePreferences: [roots.genrePreferences] as const,
 };

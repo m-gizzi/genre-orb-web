@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { XIcon } from "lucide-react";
 import type { ArtistSummary, AlbumSummary } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { describeSources, type GroupedGenre } from "@/lib/genres";
@@ -57,24 +58,60 @@ export function AlbumLink({
   );
 }
 
-export function GenreChip({ genre }: { genre: GroupedGenre }) {
+export function GenreChip({
+  genre,
+  onRemove,
+  removeLabel = "Remove",
+}: {
+  genre: GroupedGenre;
+  onRemove?: () => void;
+  removeLabel?: string;
+}) {
   const { sources } = genre;
   const fromUserOnly = sources.length === 1 && sources[0] === "user";
   const corroborated = sources.length > 1;
 
-  return (
-    <Badge
-      variant={fromUserOnly ? "outline" : "secondary"}
-      title={describeSources(sources)}
-      className={cn(corroborated && "ring-1 ring-inset ring-primary/30")}
-      render={<Link to={`/genres/${genre.genre_id}`} />}
-    >
+  const body = (
+    <>
       {genre.name}
       {corroborated && (
         <span aria-hidden="true" className="ml-1 text-[0.65rem] tabular-nums opacity-60">
           {sources.length}
         </span>
       )}
+    </>
+  );
+
+  if (!onRemove) {
+    return (
+      <Badge
+        variant={fromUserOnly ? "outline" : "secondary"}
+        title={describeSources(sources)}
+        className={cn(corroborated && "ring-1 ring-inset ring-primary/30")}
+        render={<Link to={`/genres/${genre.genre_id}`} />}
+      >
+        {body}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge
+      variant={fromUserOnly ? "outline" : "secondary"}
+      title={describeSources(sources)}
+      className={cn("gap-0", corroborated && "ring-1 ring-inset ring-primary/30")}
+    >
+      <Link to={`/genres/${genre.genre_id}`} className={linkClass}>
+        {body}
+      </Link>
+      <button
+        type="button"
+        aria-label={`${removeLabel} ${genre.name}`}
+        onClick={onRemove}
+        className="ml-1 rounded-full opacity-60 hover:opacity-100"
+      >
+        <XIcon className="size-3" />
+      </button>
     </Badge>
   );
 }

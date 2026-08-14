@@ -37,7 +37,7 @@ describe("useGenre", () => {
   afterEach(() => vi.clearAllMocks());
 
   it("fetches a genre by id", async () => {
-    const genre: Genre = { id: 4, name: "Jazz" };
+    const genre: Genre = { id: 4, name: "Jazz", blocked: false };
     mockedGenresApi.get.mockResolvedValue(genre);
     const { wrapper } = makeQueryWrapper();
 
