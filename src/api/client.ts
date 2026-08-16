@@ -398,8 +398,12 @@ export interface Genre {
   blocked: boolean;
 }
 
+/** Whether any of your smart playlists' rules names the genre. */
+export type RuleUsage = "used" | "unused";
+
 export interface GenreListParams extends SearchListParams {
   include_blocked?: boolean;
+  rule_usage?: RuleUsage;
 }
 
 export interface PlaylistCurrentVersion {

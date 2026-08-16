@@ -23,5 +23,5 @@ export const DEFAULT_PER_PAGE = 25;
 export const CARD_PER_PAGE_OPTIONS: readonly number[] = [12, 24, 48, 96];
 export const DEFAULT_CARD_PER_PAGE = 24;
 
-export const GENRE_PER_PAGE_OPTIONS: readonly number[] = [30, 60, 120];
+export const GENRE_PER_PAGE_OPTIONS: readonly number[] = [30, 60, 120, 240];
 export const DEFAULT_GENRE_PER_PAGE = 60;

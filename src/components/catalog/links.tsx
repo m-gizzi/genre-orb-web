@@ -58,6 +58,28 @@ export function AlbumLink({
   );
 }
 
+/** The icon affordance a chip carries, shared so every genre chip removes the same way. */
+export function ChipAction({
+  label,
+  onClick,
+  icon: Icon = XIcon,
+}: {
+  label: string;
+  onClick: () => void;
+  icon?: typeof XIcon;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="ml-1 rounded-full opacity-60 hover:opacity-100"
+    >
+      <Icon className="size-3" />
+    </button>
+  );
+}
+
 export function GenreChip({
   genre,
   onRemove,
@@ -104,14 +126,7 @@ export function GenreChip({
       <Link to={`/genres/${genre.genre_id}`} className={linkClass}>
         {body}
       </Link>
-      <button
-        type="button"
-        aria-label={`${removeLabel} ${genre.name}`}
-        onClick={onRemove}
-        className="ml-1 rounded-full opacity-60 hover:opacity-100"
-      >
-        <XIcon className="size-3" />
-      </button>
+      <ChipAction label={`${removeLabel} ${genre.name}`} onClick={onRemove} />
     </Badge>
   );
 }

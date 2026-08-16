@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ChevronRightIcon } from "lucide-react";
 import {
   CONFIGURABLE_GENRE_SOURCES,
   type ConfigurableGenreSource,
@@ -9,6 +11,7 @@ import {
   useUpdateGenrePreferences,
 } from "@/hooks/useGenreCuration";
 import { SOURCE_LABEL } from "@/lib/genres";
+import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +21,25 @@ const FLOOR_STEP = 0.1;
 
 function percent(value: number): string {
   return `${Math.round(value * 100)}%`;
+}
+
+/** What the header says while collapsed, so you can tell the list is being filtered. */
+function summarize(preferences: GenrePreferences): string {
+  const off = CONFIGURABLE_GENRE_SOURCES.filter(
+    (source) => !preferences.sources[source].enabled,
+  ).length;
+  const floored = CONFIGURABLE_GENRE_SOURCES.filter(
+    (source) => preferences.sources[source].min_confidence > 0,
+  ).length;
+  const blocked = preferences.blocked_genres.length;
+
+  const parts = [
+    off > 0 && `${off} source${off === 1 ? "" : "s"} off`,
+    floored > 0 && `${floored} filtered`,
+    blocked > 0 && `${blocked} blocked`,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" · ") : "All sources on";
 }
 
 function SourceRow({
@@ -62,64 +84,87 @@ function SourceRow({
   );
 }
 
+/**
+ * Collapsed by default: the genre cloud is what the page is for, and a long blocklist would
+ * otherwise push it below the fold. The summary keeps the state visible while closed, so
+ * you can tell at a glance whether anything is filtering the list underneath.
+ */
 export function GenrePreferencesPanel() {
+  const [open, setOpen] = useState(false);
   const query = useGenrePreferences();
   const update = useUpdateGenrePreferences();
   const blocked = useToggleBlockedGenre();
 
-  if (query.isLoading) return <Skeleton className="h-40 w-full" />;
+  if (query.isLoading) return <Skeleton className="h-14 w-full" />;
   if (!query.data) return null;
 
   const preferences = query.data;
 
   return (
-    <section className="space-y-3 rounded-lg border bg-card p-4">
-      <div>
-        <h2 className="font-heading text-lg font-medium">Genre sources</h2>
-        <p className="text-sm text-muted-foreground">
-          Turning a source off, or raising its minimum confidence, removes those
-          genres everywhere — including from what your smart playlists match.
-        </p>
-      </div>
+    <section className="rounded-lg border bg-card">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 p-4 text-left"
+      >
+        <ChevronRightIcon
+          aria-hidden="true"
+          className={cn("size-4 shrink-0 transition-transform", open && "rotate-90")}
+        />
+        <span className="font-heading text-lg font-medium">Genre sources</span>
+        <span className="ml-auto text-sm text-muted-foreground">
+          {summarize(preferences)}
+        </span>
+      </button>
 
-      <div className="space-y-3">
-        {CONFIGURABLE_GENRE_SOURCES.map((source) => (
-          <SourceRow
-            key={source}
-            source={source}
-            preferences={preferences}
-            onChange={(setting) =>
-              update.mutate({ sources: { [source]: setting } })
-            }
-          />
-        ))}
-      </div>
-
-      <div>
-        <h3 className="text-sm font-medium">Blocked genres</h3>
-        {preferences.blocked_genres.length === 0 ? (
+      {open && (
+        <div className="space-y-4 border-t p-4">
           <p className="text-sm text-muted-foreground">
-            Nothing blocked. Use “Block” on a genre to remove it from your whole
-            library — useful for tags like “seen live”.
+            Turning a source off, or raising its minimum confidence, removes those
+            genres everywhere — including from what your smart playlists match.
           </p>
-        ) : (
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {preferences.blocked_genres.map((genre) => (
-              <Badge key={genre.id} variant="outline" className="gap-1">
-                {genre.name}
-                <button
-                  type="button"
-                  aria-label={`Unblock ${genre.name}`}
-                  onClick={() => blocked.toggle(genre.id, false)}
-                  className="ml-0.5 text-xs opacity-70 hover:opacity-100"
-                >
-                  Unblock
-                </button>
-              </Badge>
+
+          <div className="space-y-3">
+            {CONFIGURABLE_GENRE_SOURCES.map((source) => (
+              <SourceRow
+                key={source}
+                source={source}
+                preferences={preferences}
+                onChange={(setting) =>
+                  update.mutate({ sources: { [source]: setting } })
+                }
+              />
             ))}
           </div>
-        )}
-      </div>
+
+          <div>
+            <h3 className="text-sm font-medium">Blocked genres</h3>
+            {preferences.blocked_genres.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nothing blocked. Use the × on a genre to remove it from your whole
+                library — useful for tags like “seen live”.
+              </p>
+            ) : (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {preferences.blocked_genres.map((genre) => (
+                  <Badge key={genre.id} variant="outline" className="gap-1">
+                    {genre.name}
+                    <button
+                      type="button"
+                      aria-label={`Unblock ${genre.name}`}
+                      onClick={() => blocked.toggle(genre.id, false)}
+                      className="ml-0.5 text-xs opacity-70 hover:opacity-100"
+                    >
+                      Unblock
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,4 +1,4 @@
-export { ArtistLink, ArtistLinks, AlbumLink, GenreChip } from "./links";
+export { ArtistLink, ArtistLinks, AlbumLink, GenreChip, ChipAction } from "./links";
 export { ArtistCard, AlbumCard } from "./cards";
 export { ArtistSources } from "./ArtistSources";
 export { PlaylistSyncSwitch } from "./PlaylistSyncSwitch";

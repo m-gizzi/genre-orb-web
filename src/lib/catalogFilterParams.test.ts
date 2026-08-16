@@ -7,6 +7,8 @@ import {
   artistFiltersToParams,
   parseAlbumFilters,
   albumFiltersToParams,
+  parseGenreFilters,
+  genreFiltersToParams,
 } from "./catalogFilterParams";
 
 describe("parseListParams", () => {
@@ -145,5 +147,37 @@ describe("album filters", () => {
       )
     );
     expect(params).toEqual({ artist: "radiohead", year_min: "1990", page: "2" });
+  });
+});
+
+describe("genre filters", () => {
+  it("parses the blocked and rule-usage facets", () => {
+    const params = new URLSearchParams({ include_blocked: "true", rule_usage: "unused" });
+
+    expect(parseGenreFilters(params)).toMatchObject({
+      sort: "name",
+      include_blocked: true,
+      rule_usage: "unused",
+    });
+  });
+
+  // The value reaches a SQL branch, so an unknown one must not be forwarded.
+  it("drops a rule_usage the API does not know", () => {
+    const filters = parseGenreFilters(new URLSearchParams({ rule_usage: "nonsense" }));
+
+    expect(filters.rule_usage).toBeUndefined();
+  });
+
+  it("omits both when they are at their defaults", () => {
+    expect(genreFiltersToParams(parseGenreFilters(new URLSearchParams()))).toEqual({});
+  });
+
+  it("round-trips through parse", () => {
+    const params = genreFiltersToParams(
+      parseGenreFilters(
+        new URLSearchParams({ include_blocked: "true", rule_usage: "used", page: "3" })
+      )
+    );
+    expect(params).toEqual({ include_blocked: "true", rule_usage: "used", page: "3" });
   });
 });

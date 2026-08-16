@@ -2,6 +2,7 @@ import type {
   AlbumListParams,
   CatalogListParams,
   GenreListParams,
+  RuleUsage,
   SearchListParams,
 } from "@/api/client";
 import { DEFAULT_CARD_PER_PAGE, DEFAULT_GENRE_PER_PAGE } from "@/lib/config";
@@ -142,9 +143,16 @@ export function smartPlaylistFiltersToParams(filters: SearchListParams) {
   return listParamsToParams(filters, SMART_PLAYLIST_OPTIONS);
 }
 
+const RULE_USAGES: RuleUsage[] = ["used", "unused"];
+
 export function parseGenreFilters(params: URLSearchParams): GenreFilters {
   const filters: GenreFilters = parseListParams(params, GENRE_OPTIONS);
   if (params.get("include_blocked") === "true") filters.include_blocked = true;
+
+  const usage = params.get("rule_usage");
+  if (usage && RULE_USAGES.includes(usage as RuleUsage)) {
+    filters.rule_usage = usage as RuleUsage;
+  }
   return filters;
 }
 
