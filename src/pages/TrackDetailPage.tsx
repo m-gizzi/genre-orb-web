@@ -2,11 +2,11 @@ import { useParams } from "react-router-dom";
 import { MusicIcon } from "lucide-react";
 import { useTrack } from "@/hooks/useTracks";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ArtistLinks, AlbumLink, GenreChip, ErrorState } from "@/components/catalog";
+import { ArtistLinks, AlbumLink, ErrorState } from "@/components/catalog";
+import { GenreEditor } from "@/components/genres/GenreEditor";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDuration, formatNumber } from "@/lib/format";
-import { groupGenres } from "@/lib/genres";
 
 export function TrackDetailPage() {
   const { id } = useParams();
@@ -28,7 +28,6 @@ export function TrackDetailPage() {
   if (!query.data) return null;
 
   const track = query.data;
-  const groupedGenres = groupGenres(track.genres);
 
   return (
     <div>
@@ -81,17 +80,12 @@ export function TrackDetailPage() {
 
       <div className="mt-8">
         <h2 className="mb-2 font-heading text-lg font-medium">Genres</h2>
-        {groupedGenres.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {groupedGenres.map((genre) => (
-              <GenreChip key={genre.genre_id} genre={genre} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            No genres yet — sync artist metadata from the Library page.
-          </p>
-        )}
+        <GenreEditor
+          subject="track"
+          subjectId={trackId}
+          genres={track.genres}
+          emptyMessage="No genres yet — sync artist metadata from the Library page, or add one below."
+        />
       </div>
 
       {track.preview_url && (

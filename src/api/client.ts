@@ -300,11 +300,42 @@ export interface AlbumSummary {
 export type GenreSource = "spotify" | "musicbrainz" | "lastfm" | "user";
 
 export interface SourcedGenre {
-  id: number;
   genre_id: number;
   name: string;
   source: GenreSource;
   confidence: number;
+}
+
+export type ConfigurableGenreSource = "spotify" | "musicbrainz" | "lastfm";
+
+export const CONFIGURABLE_GENRE_SOURCES: ConfigurableGenreSource[] = [
+  "spotify",
+  "musicbrainz",
+  "lastfm",
+];
+
+export interface GenreSourceSetting {
+  enabled: boolean;
+  min_confidence: number;
+}
+
+export interface GenrePreferences {
+  sources: Record<ConfigurableGenreSource, GenreSourceSetting>;
+  blocked_genres: { id: number; name: string }[];
+}
+
+export interface GenrePreferencesUpdate {
+  sources?: Partial<Record<ConfigurableGenreSource, Partial<GenreSourceSetting>>>;
+  blocked_genre_ids?: number[];
+}
+
+export type GenreOverrideAction = "hidden" | "added";
+
+/** Name a genre that may not exist yet, or point at one that does. */
+export interface GenreOverrideInput {
+  genre_id?: number;
+  name?: string;
+  action: GenreOverrideAction;
 }
 
 export interface Track {
@@ -364,6 +395,15 @@ export interface AlbumDetail extends Album {
 export interface Genre {
   id: number;
   name: string;
+  blocked: boolean;
+}
+
+/** Whether any of your smart playlists' rules names the genre. */
+export type RuleUsage = "used" | "unused";
+
+export interface GenreListParams extends SearchListParams {
+  include_blocked?: boolean;
+  rule_usage?: RuleUsage;
 }
 
 export interface PlaylistCurrentVersion {
@@ -761,7 +801,7 @@ export const albumsApi = {
 };
 
 export const genresApi = {
-  list: (params: SearchListParams = {}) =>
+  list: (params: GenreListParams = {}) =>
     api
       .get("api/v1/genres", { searchParams: cleanParams(params) })
       .json<ApiCollection<Genre>>(),
@@ -772,3 +812,36 @@ export const genresApi = {
       .json<ApiResource<Genre>>()
       .then((r) => r.data),
 };
+
+export const genrePreferencesApi = {
+  get: () =>
+    api
+      .get("api/v1/genre_preferences")
+      .json<ApiResource<GenrePreferences>>()
+      .then((r) => r.data),
+
+  update: (genre_preferences: GenrePreferencesUpdate) =>
+    api
+      .patch("api/v1/genre_preferences", { json: { genre_preferences } })
+      .json<ApiResource<GenrePreferences>>()
+      .then((r) => r.data),
+};
+
+function genreOverrides(resource: "tracks" | "artists") {
+  return {
+    set: (id: number, genre: GenreOverrideInput) =>
+      api
+        .post(`api/v1/${resource}/${id}/genres`, { json: { genre } })
+        .json<ApiResource<SourcedGenre[]>>()
+        .then((r) => r.data),
+
+    clear: (id: number, genreId: number) =>
+      api
+        .delete(`api/v1/${resource}/${id}/genres/${genreId}`)
+        .json<ApiResource<SourcedGenre[]>>()
+        .then((r) => r.data),
+  };
+}
+
+export const trackGenresApi = genreOverrides("tracks");
+export const artistGenresApi = genreOverrides("artists");

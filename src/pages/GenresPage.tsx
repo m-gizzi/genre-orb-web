@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Undo2Icon, XIcon } from "lucide-react";
 import { useGenres } from "@/hooks/useGenres";
 import { useUrlListParams } from "@/hooks/useUrlListParams";
 import {
@@ -7,10 +8,16 @@ import {
 } from "@/lib/catalogFilterParams";
 import { GENRE_PER_PAGE_OPTIONS } from "@/lib/config";
 import type { GenreSort } from "@/lib/sorts";
+import { useToggleBlockedGenre } from "@/hooks/useGenreCuration";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { GenrePreferencesPanel } from "@/components/genres/GenrePreferencesPanel";
+import { RuleUsageFilter } from "@/components/genres/RuleUsageFilter";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
+  ChipAction,
   DebouncedSearchInput,
   EmptyState,
   Pagination,
@@ -30,6 +37,7 @@ export function GenresPage() {
   );
 
   const query = useGenres(filters);
+  const blocked = useToggleBlockedGenre();
   const genres = query.data?.data ?? [];
 
   return (
@@ -55,21 +63,48 @@ export function GenresPage() {
         }
       />
 
+      <GenrePreferencesPanel />
+
+      <div className="my-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Switch
+            checked={filters.include_blocked ?? false}
+            onCheckedChange={(checked: boolean) =>
+              applyPatch({ include_blocked: checked || undefined, page: 1 })
+            }
+          />
+          Show blocked genres
+        </label>
+
+        <RuleUsageFilter
+          value={filters.rule_usage}
+          onChange={(rule_usage) => applyPatch({ rule_usage, page: 1 })}
+        />
+      </div>
+
       <QueryState
         query={query}
         skeleton={<Skeleton className="h-40 w-full" />}
         isEmpty={genres.length === 0}
         empty={<EmptyState title="No genres found" />}
       >
+        {/* An icon rather than a "Block" label: the cloud is dozens of chips wide, and a
+            word on each one buries the genre names it exists to show. */}
         <div className="flex flex-wrap gap-2">
           {genres.map((genre) => (
             <Badge
               key={genre.id}
               variant="outline"
-              className="h-7 px-3 text-sm"
-              render={<Link to={`/genres/${genre.id}`} />}
+              className={cn("h-7 gap-0 px-3 text-sm", genre.blocked && "opacity-50")}
             >
-              {genre.name}
+              <Link to={`/genres/${genre.id}`} className="hover:underline">
+                {genre.name}
+              </Link>
+              <ChipAction
+                label={`${genre.blocked ? "Unblock" : "Block"} ${genre.name}`}
+                icon={genre.blocked ? Undo2Icon : XIcon}
+                onClick={() => blocked.toggle(genre.id, !genre.blocked)}
+              />
             </Badge>
           ))}
         </div>

@@ -2,15 +2,13 @@ import { describe, it, expect } from "vitest";
 import type { GenreSource, SourcedGenre } from "@/api/client";
 import { groupGenres, describeSources } from "./genres";
 
-let nextId = 1;
-
 function entry(
   genreId: number,
   name: string,
   source: GenreSource,
   confidence = 1,
 ): SourcedGenre {
-  return { id: nextId++, genre_id: genreId, name, source, confidence };
+  return { genre_id: genreId, name, source, confidence };
 }
 
 describe("groupGenres", () => {

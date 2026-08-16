@@ -11,8 +11,8 @@ function makeArtist(overrides: Partial<Artist> = {}): Artist {
     spotify_id: "sp1",
     image_url: null,
     genres: [
-      { id: 1, genre_id: 1, name: "Rock", source: "spotify", confidence: 1 },
-      { id: 2, genre_id: 2, name: "Alternative", source: "spotify", confidence: 1 },
+      { genre_id: 1, name: "Rock", source: "spotify", confidence: 1 },
+      { genre_id: 2, name: "Alternative", source: "spotify", confidence: 1 },
     ],
     followers: null,
     popularity: null,

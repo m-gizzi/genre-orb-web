@@ -1,6 +1,8 @@
 import type {
   AlbumListParams,
   CatalogListParams,
+  GenreListParams,
+  RuleUsage,
   SearchListParams,
 } from "@/api/client";
 import { DEFAULT_CARD_PER_PAGE, DEFAULT_GENRE_PER_PAGE } from "@/lib/config";
@@ -98,7 +100,7 @@ export type ArtistFilters = Parsed<CatalogListParams, ArtistSort>;
 export type AlbumFilters = Parsed<AlbumListParams, AlbumSort>;
 export type PlaylistFilters = Parsed<SearchListParams, PlaylistSort>;
 export type SmartPlaylistFilters = Parsed<SearchListParams, SmartPlaylistSort>;
-export type GenreFilters = Parsed<SearchListParams, GenreSort>;
+export type GenreFilters = Parsed<GenreListParams, GenreSort>;
 
 export function parseArtistFilters(params: URLSearchParams): ArtistFilters {
   return parseCatalogFilters(params, ARTIST_OPTIONS);
@@ -141,10 +143,19 @@ export function smartPlaylistFiltersToParams(filters: SearchListParams) {
   return listParamsToParams(filters, SMART_PLAYLIST_OPTIONS);
 }
 
+const RULE_USAGES: RuleUsage[] = ["used", "unused"];
+
 export function parseGenreFilters(params: URLSearchParams): GenreFilters {
-  return parseListParams(params, GENRE_OPTIONS);
+  const filters: GenreFilters = parseListParams(params, GENRE_OPTIONS);
+  if (params.get("include_blocked") === "true") filters.include_blocked = true;
+
+  const usage = params.get("rule_usage");
+  if (usage && RULE_USAGES.includes(usage as RuleUsage)) {
+    filters.rule_usage = usage as RuleUsage;
+  }
+  return filters;
 }
 
-export function genreFiltersToParams(filters: SearchListParams) {
+export function genreFiltersToParams(filters: GenreListParams) {
   return listParamsToParams(filters, GENRE_OPTIONS);
 }

@@ -35,8 +35,8 @@ describe("GenreAutocomplete", () => {
 
   it("opens results as the user types and selects one", () => {
     mockResults([
-      { id: 1, name: "Jazz" },
-      { id: 2, name: "Jungle" },
+      { id: 1, name: "Jazz", blocked: false },
+      { id: 2, name: "Jungle", blocked: false },
     ]);
     const onSelect = vi.fn();
     render(<GenreAutocomplete onSelect={onSelect} />);
