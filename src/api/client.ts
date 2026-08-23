@@ -67,6 +67,10 @@ export const api = ky.create({
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
+    // A free ngrok tunnel answers browser-looking requests with its interstitial
+    // warning page instead of forwarding them, which reaches us as HTML where
+    // JSON should be. Ignored by every other host.
+    "ngrok-skip-browser-warning": "true",
   },
   hooks: {
     beforeError: [
