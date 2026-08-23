@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { PencilIcon, SparklesIcon } from "lucide-react";
+import type { PlaylistGenre } from "@/api/client";
 import { usePlaylist, usePlaylistTracks } from "@/hooks/usePlaylistDetail";
 import { usePagination } from "@/hooks/usePagination";
 import { pageStartIndex } from "@/lib/pagination";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  ChipAction,
   EmptyState,
   ErrorState,
   Pagination,
@@ -17,6 +19,7 @@ import {
   TableSkeleton,
   TrackTable,
 } from "@/components/catalog";
+import { PlaylistGenreBreakdown } from "@/components/playlists/PlaylistGenreBreakdown";
 import { EditPlaylistDialog } from "@/components/playlists/EditPlaylistDialog";
 import { MakeSmartDialog } from "@/components/smartPlaylists/MakeSmartDialog";
 import { SmartBadge } from "@/components/smartPlaylists/SmartBadge";
@@ -28,9 +31,14 @@ export function PlaylistDetailPage() {
   const { page, perPage, setPage, setPerPage } = usePagination(50);
   const [editing, setEditing] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [genre, setGenre] = useState<PlaylistGenre | null>(null);
 
   const playlist = usePlaylist(playlistId);
-  const tracks = usePlaylistTracks(playlistId, { page, per_page: perPage });
+  const tracks = usePlaylistTracks(playlistId, {
+    page,
+    per_page: perPage,
+    genre: genre?.id,
+  });
   const trackRows = tracks.data?.data ?? [];
   const data = playlist.data;
 
@@ -38,6 +46,11 @@ export function PlaylistDetailPage() {
   // nor used as a smart playlist target.
   const canEdit = data != null && !data.is_liked_songs;
   const canMakeSmart = canEdit && !data.is_smart;
+
+  const selectGenre = (next: PlaylistGenre | null) => {
+    setGenre(next);
+    setPage(1);
+  };
 
   if (!Number.isFinite(playlistId)) {
     return (
@@ -99,15 +112,44 @@ export function PlaylistDetailPage() {
         />
       )}
 
+      {data && (
+        <PlaylistGenreBreakdown
+          playlistId={playlistId}
+          trackCount={data.track_count}
+          activeGenreId={genre?.id}
+          onSelectGenre={selectGenre}
+        />
+      )}
+
+      {genre && (
+        <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+          Showing
+          <Badge variant="secondary" className="gap-0">
+            {genre.name}
+            <ChipAction
+              label={`Clear the ${genre.name} filter`}
+              onClick={() => selectGenre(null)}
+            />
+          </Badge>
+        </div>
+      )}
+
       <QueryState
         query={tracks}
         skeleton={<TableSkeleton />}
         isEmpty={trackRows.length === 0}
         empty={
-          <EmptyState
-            title="No tracks in this version"
-            description="This playlist hasn't been synced yet, or its current version is empty."
-          />
+          genre ? (
+            <EmptyState
+              title={`No ${genre.name} tracks in this playlist`}
+              showOrb={false}
+            />
+          ) : (
+            <EmptyState
+              title="No tracks in this version"
+              description="This playlist hasn't been synced yet, or its current version is empty."
+            />
+          )
         }
       >
         <TrackTable

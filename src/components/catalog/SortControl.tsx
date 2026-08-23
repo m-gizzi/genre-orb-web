@@ -34,7 +34,7 @@ export function SortControl<S extends string>({
           value={sort}
           onValueChange={(value) => onSortChange((value as S | null) ?? sort)}
         >
-          <SelectTrigger className="w-[9rem]">
+          <SelectTrigger className="w-[9rem]" aria-label="Sort by">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

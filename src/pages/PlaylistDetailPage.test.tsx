@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Routes, Route } from "react-router-dom";
-import type { ApiCollection, PlaylistDetail, Track } from "@/api/client";
+import type {
+  ApiCollection,
+  PlaylistDetail,
+  PlaylistGenre,
+  Track,
+} from "@/api/client";
 import { playlistsApi } from "@/api/client";
 import { renderWithProviders } from "@/test/utils";
 import { PlaylistDetailPage } from "./PlaylistDetailPage";
@@ -10,7 +16,12 @@ vi.mock("@/api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/client")>();
   return {
     ...actual,
-    playlistsApi: { get: vi.fn(), tracks: vi.fn(), update: vi.fn() },
+    playlistsApi: {
+      get: vi.fn(),
+      tracks: vi.fn(),
+      genres: vi.fn(),
+      update: vi.fn(),
+    },
   };
 });
 
@@ -19,6 +30,18 @@ const mockedPlaylistsApi = vi.mocked(playlistsApi);
 const noTracks: ApiCollection<Track> = {
   data: [],
   meta: { page: 1, per_page: 50, total: 0, total_pages: 0 },
+};
+
+const SHOEGAZE: PlaylistGenre = {
+  id: 1,
+  name: "shoegaze",
+  blocked: false,
+  track_count: 2,
+};
+
+const genreCollection: ApiCollection<PlaylistGenre> = {
+  data: [SHOEGAZE],
+  meta: { page: 1, per_page: 25, total: 1, total_pages: 1 },
 };
 
 function detail(overrides: Partial<PlaylistDetail> = {}): PlaylistDetail {
@@ -42,6 +65,7 @@ function detail(overrides: Partial<PlaylistDetail> = {}): PlaylistDetail {
 function renderPlaylist(playlist: PlaylistDetail) {
   mockedPlaylistsApi.get.mockResolvedValue(playlist);
   mockedPlaylistsApi.tracks.mockResolvedValue(noTracks);
+  mockedPlaylistsApi.genres.mockResolvedValue(genreCollection);
 
   return renderWithProviders(
     <Routes>
@@ -107,5 +131,57 @@ describe("PlaylistDetailPage", () => {
     renderPlaylist(detail());
 
     expect(await screen.findByRole("switch", { name: "Sync Metal Mix" })).toBeEnabled();
+  });
+
+  it("summarises the playlist's genres above the track list", async () => {
+    renderPlaylist(detail({ track_count: 4 }));
+
+    expect(await screen.findByText("1 genre · shoegaze")).toBeInTheDocument();
+  });
+
+  it("filters the tracks by a genre picked in the breakdown", async () => {
+    renderPlaylist(detail({ track_count: 4 }));
+    await userEvent.click(await screen.findByRole("button", { name: /Genre breakdown/ }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Filter the tracks by shoegaze" }),
+    );
+
+    await waitFor(() =>
+      expect(mockedPlaylistsApi.tracks).toHaveBeenLastCalledWith(
+        1,
+        expect.objectContaining({ genre: 1, page: 1 }),
+      ),
+    );
+  });
+
+  it("clears the genre filter from the chip above the track list", async () => {
+    renderPlaylist(detail({ track_count: 4 }));
+    await userEvent.click(await screen.findByRole("button", { name: /Genre breakdown/ }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Filter the tracks by shoegaze" }),
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Clear the shoegaze filter" }),
+    );
+
+    await waitFor(() =>
+      expect(mockedPlaylistsApi.tracks).toHaveBeenLastCalledWith(
+        1,
+        expect.objectContaining({ genre: undefined }),
+      ),
+    );
+  });
+
+  it("says the genre is what emptied the track list", async () => {
+    renderPlaylist(detail({ track_count: 4 }));
+    await userEvent.click(await screen.findByRole("button", { name: /Genre breakdown/ }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Filter the tracks by shoegaze" }),
+    );
+
+    expect(
+      await screen.findByText("No shoegaze tracks in this playlist"),
+    ).toBeInTheDocument();
   });
 });

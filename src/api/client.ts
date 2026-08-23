@@ -421,6 +421,14 @@ export interface PlaylistDetail extends Playlist {
   current_version: PlaylistCurrentVersion | null;
 }
 
+export interface PlaylistGenre extends Genre {
+  track_count: number;
+}
+
+export interface PlaylistTrackParams extends Pagination {
+  genre?: number;
+}
+
 export const TRACK_SORTS = [
   "title",
   "artist",
@@ -680,10 +688,15 @@ export const playlistsApi = {
       .json<ApiResource<PlaylistDetail>>()
       .then((r) => r.data),
 
-  tracks: (id: number, params: Pagination = {}) =>
+  tracks: (id: number, params: PlaylistTrackParams = {}) =>
     api
       .get(`api/v1/playlists/${id}/tracks`, { searchParams: cleanParams(params) })
       .json<ApiCollection<Track>>(),
+
+  genres: (id: number, params: GenreListParams = {}) =>
+    api
+      .get(`api/v1/playlists/${id}/genres`, { searchParams: cleanParams(params) })
+      .json<ApiCollection<PlaylistGenre>>(),
 
   create: (data: NewPlaylistAttributes) =>
     api

@@ -1,6 +1,6 @@
 import type {
   TrackFilters,
-  Pagination,
+  PlaylistTrackParams,
   SearchListParams,
   PlaylistListParams,
   CatalogListParams,
@@ -70,8 +70,10 @@ export const queryKeys = {
     [roots.ruleMatches, id, rules, page, perPage] as const,
 
   playlist: (id: number) => [roots.playlist, id] as const,
-  playlistTracks: (id: number, params: Pagination = {}) =>
+  playlistTracks: (id: number, params: PlaylistTrackParams = {}) =>
     [roots.playlist, id, "tracks", params] as const,
+  playlistGenres: (id: number, params: GenreListParams = {}) =>
+    [roots.playlist, id, "genres", params] as const,
 
   tracks: (filters: TrackFilters = {}) => [roots.tracks, filters] as const,
   track: (id: number) => [roots.track, id] as const,
